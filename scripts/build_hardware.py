@@ -34,6 +34,8 @@ PARTS = {
     "eye_camera": (1, "PLA", "grey"),
     "eye_led": (1, "PLA", "grey"),
     "eye_cap": (2, "PLA", "grey"),
+    "chest_cover": (1, "PETG or PLA", "grey"),
+    "chest_bezel": (1, "PETG or PLA", "grey, print when you add the screen"),
     "dock_base": (1, "PETG or PLA", "any"),
     "dock_wall": (1, "PETG or PLA", "any"),
 }

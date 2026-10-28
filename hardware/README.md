@@ -40,6 +40,7 @@ authorised resellers: a Pi 5 4 GB under ₹5,000 is probably fake or grey-market
 | 1 | **MAX98357A** I2S amplifier (SmartElex) | Voice | Robocraze, KSP Electronics | 250 |
 | 1 | 28 mm 8 Ω speaker | | Robu, Amazon.in | 100 |
 | 1 | 5 mm LED + 220 Ω resistor | Right eye status light | anywhere | 10 |
+| *(later)* 1 | *1.54" 240×240 IPS screen module (ST7789, SPI)* | *Optional chest screen: battery gauge, expressions, photo previews. The body already has its window* | *Robu, Robocraze* | *≈ 400* |
 
 > Cheaper cliff sensors: 4 × **TCRT5000** IR modules (≈ ₹250 total) work too.
 
@@ -112,6 +113,8 @@ settings: 0.2 mm layers, 3 walls, 20% infill.
 | `scoop_front.stl`, `lip_rear.stl` | 1 each | PETG/PLA | |
 | `hand_left.stl`, `hand_right.stl` | 1 each | PETG/PLA | |
 | `belt.stl` | 2 | **TPU 95A** | Slow (20–30 mm/s), no retraction or very little, 2 walls |
+| `chest_cover.stl` | 1 | PETG/PLA | Blanks the screen window until you add a screen |
+| `chest_bezel.stl` | (1) | PETG/PLA | Only when you add the screen: frames it instead of the cover |
 | `dock_base.stl` | 1 | PETG/PLA | 170 × 210 mm: check it fits your bed |
 | `dock_wall.stl` | 1 | PETG/PLA | Marker side up |
 
@@ -202,6 +205,16 @@ A full wiring diagram comes with the firmware (next step).
 ### 6. Close up
 
 Lid on, 4 × M3 screws. Done: a Wall-E with no software yet.
+
+### Adding the chest screen later
+
+The square window on the chest is ready for a 1.54" ST7789 screen module. Until then,
+`chest_cover` pushes into the recess (a dab of glue or Blu-Tack holds it). To add the
+screen: take the lid off, push the cover out from inside, slide the screen down
+the two rails behind the window (glass facing out), wire it to the Pi 5's SPI pins
+(kept free for this), and press `chest_bezel` into the recess. Before printing the
+body, check your module against `screen_board` at the top of `walle.scad`
+(36 × 40 mm assumed); if it differs, send Claude its size.
 
 ### 7. The charging dock
 

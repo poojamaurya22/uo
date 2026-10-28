@@ -42,6 +42,12 @@ tof_board = [25.4, 25.4];    // VL53L5CX breakout (SparkFun Qwiic size)
 side_board = [12.7, 17.8];   // VL53L1X breakout (Pololu size)
 cliff_board = [12.7, 17.8];  // VL6180X breakout (Pololu size)
 speaker_d = 28;
+screen_board = [36, 40];     // optional chest screen module, 1.54" ST7789 (y by z): measure yours
+screen_t = 4;                // glass + PCB thickness
+screen_view = [29, 29];      // visible display area
+screen_y = 18; screen_z = 70;// chest window centre (speaker grille sits to its right)
+bezel = 40;                  // square recess around the window for the cover / bezel
+speaker_y = -28;
 
 // ------------------------------------------------------------ derived sizes
 axle_z = wheel_r - clearance;          // wheel axles, above the body's underside
@@ -104,6 +110,17 @@ module tof_rail(sy) {  // one of two slotted rails holding the chest ToF board 2
     }
 }
 
+module screen_rail(sy) {  // slotted rail; the screen slides down from the top, glass against the wall
+    x_wall = body_l / 2 - wall;
+    y_edge = screen_y + sy * screen_board[0] / 2;
+    z0 = screen_z - screen_board[1] / 2;
+    difference() {
+        translate([x_wall - 7, y_edge - (sy > 0 ? 2 : 3), z0 - 3]) cube([7, 5, shell_h - 6 - (z0 - 3)]);
+        translate([x_wall - screen_t - fit, y_edge - (sy > 0 ? 2 + fit : 0), z0])
+            cube([screen_t + fit + 0.01, 2 + fit, 50]);
+    }
+}
+
 module body() {
     difference() {
         union() {
@@ -116,12 +133,13 @@ module body() {
                 translate([sx * (body_l / 2 - wall - 3.5), sy * (body_w / 2 - wall - 3.5), 0])
                     cylinder(d = 8, h = shell_h);
             for (side = [-1, 1]) motor_cradle(side);
-            // Pi Zero standoffs on the rear wall
+            // Pi 5 standoffs on the rear wall
             for (sy = [-1, 1], sz = [-1, 1])
                 translate([-body_l / 2 + wall, sy * pi_holes[0] / 2, pi_z + sz * pi_holes[1] / 2])
                     rotate([0, 90, 0]) cylinder(d = 5, h = 5);
             // rails holding the chest ToF board, sensor looking out through the window
             for (sy = [-1, 1]) tof_rail(sy);
+            for (sy = [-1, 1]) screen_rail(sy);
             // low fence keeping the battery holders in place (plus Velcro)
             translate([battery_x, 0, 0]) difference() {
                 rbox([battery_bay[0] + 2 * fit + 4, battery_bay[1] + 2 * fit + 4, floor_t + 5], 2);
@@ -143,15 +161,20 @@ module body() {
             hull() for (dx = [-1.5, 1.5])
                 translate([spacing + dx, side * body_w / 2, axle_z]) rotate([90, 0, 0]) cylinder(d = 3.3, h = 4 * wall, center = true);
         }
-        // Pi Zero standoff holes
+        // Pi 5 standoff holes
         for (sy = [-1, 1], sz = [-1, 1])
             translate([-body_l / 2, sy * pi_holes[0] / 2, pi_z + sz * pi_holes[1] / 2])
                 rotate([0, 90, 0]) cylinder(d = 2.2, h = 30, center = true);
-        // chest: ToF window and speaker grille
+        // chest: ToF window, speaker grille, and the screen window with its recess for
+        // chest_cover (now) or chest_bezel (once a screen is fitted)
         translate([body_l / 2, 0, tof_z]) cube([4 * wall, 12, 10], center = true);
         for (gy = [-12:4:12], gz = [-12:4:12])
             if (gy * gy + gz * gz <= 12 * 12)
-                translate([body_l / 2, gy, 72 + gz]) rotate([0, 90, 0]) cylinder(d = 2.4, h = 4 * wall, center = true);
+                translate([body_l / 2, speaker_y + gy, 72 + gz]) rotate([0, 90, 0]) cylinder(d = 2.4, h = 4 * wall, center = true);
+        translate([body_l / 2, screen_y, screen_z]) {
+            cube([4 * wall, screen_view[0], screen_view[1]], center = true);
+            translate([-1.2, -bezel / 2, -bezel / 2]) cube([2, bezel, bezel]);
+        }
         // hand mounts (side ToFs): 2 x M3 + a wire hole, on each side near the front
         for (side = [-1, 1]) {
             for (dx = [-6, 6])
@@ -421,6 +444,21 @@ module eye_cap() {  // push-fit back cover with a cable slot
     }
 }
 
+// ---------------------------------------------------------- chest screen
+module chest_cover() {  // blank plug for the screen window; prints face down
+    cube([bezel - 2 * fit, bezel - 2 * fit, 1.2]);
+    translate([(bezel - screen_view[0]) / 2 + fit, (bezel - screen_view[1]) / 2 + fit, 0])
+        cube([screen_view[0] - 2 * fit, screen_view[1] - 2 * fit, 1.2 + wall - 0.2]);
+}
+
+module chest_bezel() {  // frame around a fitted screen; prints face down
+    difference() {
+        cube([bezel - 2 * fit, bezel - 2 * fit, 1.2]);
+        translate([(bezel - screen_view[0]) / 2 - fit, (bezel - screen_view[1]) / 2 - fit, -1])
+            cube([screen_view[0], screen_view[1], 4]);
+    }
+}
+
 // ------------------------------------------------------------------- dock
 // Wall-E drives in forwards between the guide arms until the pogo pins on its
 // scoop snap onto the matching half in the contact block. The wall behind it
@@ -491,6 +529,8 @@ module place_wheel(x, side) {
 
 module assembly() {
     color("gold") body();
+    color("gray") translate([body_l / 2 + 0.01, screen_y, screen_z]) rotate([0, -90, 0]) rotate([0, 0, 0])
+        translate([-(bezel - 2 * fit) / 2, -(bezel - 2 * fit) / 2, -1.2]) chest_cover();
     color("gold") translate([0, 0, shell_h]) lid();
     for (side = [-1, 1]) {
         color("dimgray") place_wheel(-spacing, side) sprocket(true);
@@ -533,6 +573,8 @@ if (part == "head") rotate([180, 0, 0]) head();
 if (part == "eye_camera") rotate([0, 90, 0]) eye(true);  // front face down: no supports
 if (part == "eye_led") rotate([0, 90, 0]) eye(false);
 if (part == "eye_cap") eye_cap();
+if (part == "chest_cover") chest_cover();
+if (part == "chest_bezel") chest_bezel();
 if (part == "dock_base") dock_base();
 if (part == "dock_wall") rotate([0, 90, 0]) dock_wall();  // marker face up
 if (part == "dock") { dock_base(); dock_wall(); }
