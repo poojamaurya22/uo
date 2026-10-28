@@ -1,4 +1,4 @@
-"""Robot + house model, generated as MJCF so dimensions come from one place.
+"""Wall-E style robot + house model, generated as MJCF so dimensions come from one place.
 
 Every number in RobotSpec is chosen to match the planned real build
 (see README "Hardware it mirrors"), so a policy trained here sees the
@@ -12,27 +12,42 @@ import numpy as np
 
 @dataclass(frozen=True)
 class RobotSpec:
-    # Body: ~15 x 12 x 6 cm chassis, 2S 18650 pack low in the base.
-    chassis_half: tuple = (0.075, 0.06, 0.03)
-    clearance: float = 0.008
-    chassis_mass: float = 0.45
-    head_half: tuple = (0.045, 0.05, 0.03)
-    head_mass: float = 0.12
-    # Drive: 2x N20 gear motors with encoders, 44 mm wheels with TPU tires.
-    wheel_radius: float = 0.022
-    wheel_half_width: float = 0.007
-    track_half: float = 0.068
-    wheel_mass: float = 0.02
-    caster_radius: float = 0.008
-    max_wheel_speed: float = 20.0  # rad/s -> ~0.44 m/s, capped below N20 300 RPM
+    # Body: ~12 x 11 x 10 cm box, 2S 18650 pack low inside.
+    body_half: tuple = (0.06, 0.055, 0.05)
+    clearance: float = 0.012
+    body_mass: float = 0.55
+    # Tracks: 3 coupled road wheels per side (a printed TPU track in reality),
+    # the middle one driven by an N20 gear motor with encoder.
+    wheel_radius: float = 0.02
+    wheel_spacing: float = 0.045
+    track_half_width: float = 0.011
+    track_gap: float = 0.006  # between body side and track
+    wheel_mass: float = 0.015
+    max_wheel_speed: float = 20.0  # rad/s -> 0.4 m/s
     motor_kv: float = 0.05
-    motor_torque: float = 0.08  # N*m, roughly an N20 1:100 near stall
+    motor_torque: float = 0.12  # N*m, N20 1:100 near stall
+    # Neck (pan + tilt servos) and binocular head; camera in the left eye.
+    neck_height: float = 0.06
+    eye_radius: float = 0.022
+    eye_half_length: float = 0.022
+    head_mass: float = 0.1
+    pan_range: float = 1.5  # rad, ~ +/-86 degrees
     # Sensors.
-    tof_fov_deg: float = 45.0  # VL53L5CX, 8x8 zones
-    tof_tilt_deg: float = 10.0  # mounted pointing slightly up
+    tof_fov_deg: float = 45.0  # VL53L5CX 8x8 in the chest
+    tof_tilt_deg: float = 10.0
     tof_range: float = 4.0
+    side_tof_yaw_deg: float = 55.0  # VL53L1X in each "hand"
+    side_tof_fov_deg: float = 27.0
     camera_hfov_deg: float = 102.0  # Pi Camera Module 3 Wide
     camera_vfov_deg: float = 67.0
+
+    @property
+    def track_y(self):
+        return self.body_half[1] + self.track_gap + self.track_half_width
+
+    @property
+    def body_z(self):
+        return self.clearance + self.body_half[2]
 
 
 # House layout: a 4 x 4 m room raised above the ground, with a stairwell
@@ -53,6 +68,9 @@ OBSTACLES = [
 
 # Geom groups: 0 = house, 1 = robot, 2 = person. Ray sensors skip group 1.
 SENSOR_GEOMGROUP = np.array([1, 0, 1, 0, 0, 0], dtype=np.uint8)
+
+ROBOT_YELLOW = ".85 .62 .15 1"
+ROBOT_GREY = ".35 .35 .37 1"
 
 
 def _floor_and_walls() -> str:
@@ -98,17 +116,36 @@ def _obstacles() -> str:
     return "\n    ".join(out)
 
 
+def _track(spec: RobotSpec, side: str, sign: int) -> str:
+    """One track: three road wheels coupled by equality constraints + a cosmetic belt."""
+    y = sign * spec.track_y
+    z = spec.wheel_radius - spec.body_z
+    r, w = spec.wheel_radius, spec.track_half_width
+    reach = spec.wheel_spacing + r + 0.003
+    wheels = []
+    for name, x in (("rear", -spec.wheel_spacing), ("mid", 0.0), ("front", spec.wheel_spacing)):
+        wheels.append(
+            f'<body name="wheel_{side}_{name}" pos="{x} {y} {z}">'
+            f'<joint name="wheel_{side}_{name}" type="hinge" axis="0 1 0" armature="0.0001" damping="0.0002"/>'
+            f'<geom type="cylinder" size="{r} {w * 0.9}" zaxis="0 1 0" mass="{spec.wheel_mass}" '
+            f'friction="1.2 0.01 0.001" rgba=".12 .12 .12 1"/></body>'
+        )
+    belt = (
+        f'<geom name="track_{side}" type="box" size="{reach} {w} {r + 0.003}" pos="0 {y} {z}" '
+        f'rgba=".2 .2 .2 1" contype="0" conaffinity="0" mass="0"/>'
+    )
+    return belt + "\n      ".join(wheels)
+
+
 def build_xml(spec: RobotSpec = RobotSpec()) -> str:
-    cx, cy, cz = spec.chassis_half
-    hx, hy, hz = spec.head_half
-    z0 = spec.clearance + cz  # chassis centre height when resting
-    wheel_z = spec.wheel_radius - z0
-    caster_z = spec.caster_radius - z0 + 0.002  # slightly raised so the wheels carry the load
-    caster_x = cx - spec.caster_radius - 0.004
+    bx, by, bz = spec.body_half
+    er, el = spec.eye_radius, spec.eye_half_length
     fovy = spec.camera_vfov_deg
+    side_yaw = np.radians(spec.side_tof_yaw_deg)
+    sx, sy = np.cos(side_yaw), np.sin(side_yaw)
 
     return f"""
-<mujoco model="petbot">
+<mujoco model="walle">
   <compiler angle="radian"/>
   <option timestep="0.002" integrator="implicitfast"/>
   <visual><global offwidth="1280" offheight="720"/></visual>
@@ -121,7 +158,7 @@ def build_xml(spec: RobotSpec = RobotSpec()) -> str:
   </asset>
   <default>
     <default class="robot">
-      <geom group="1" rgba=".95 .95 .97 1"/>
+      <geom group="1" rgba="{ROBOT_YELLOW}"/>
     </default>
   </default>
   <worldbody>
@@ -130,36 +167,43 @@ def build_xml(spec: RobotSpec = RobotSpec()) -> str:
     <geom name="ground" type="plane" size="6 6 .1" pos="0 0 -0.6" rgba=".15 .15 .17 1"/>
     {_floor_and_walls()}
 
-    <body name="robot" pos="0 0 {z0}" childclass="robot">
+    <body name="robot" pos="0 0 {spec.body_z}" childclass="robot">
       <freejoint name="root"/>
-      <geom name="chassis" type="box" size="{cx} {cy} {cz}" mass="{spec.chassis_mass}"/>
-      <geom name="caster_front" type="sphere" size="{spec.caster_radius}"
-            pos="{caster_x} 0 {caster_z}" mass="0.005" friction="0.02 0.005 0.0001"/>
-      <geom name="caster_back" type="sphere" size="{spec.caster_radius}"
-            pos="{-caster_x} 0 {caster_z}" mass="0.005" friction="0.02 0.005 0.0001"/>
+      <geom name="body" type="box" size="{bx} {by} {bz}" mass="{spec.body_mass}"/>
+      <geom name="chest_panel" type="box" size="0.002 {by * 0.7} {bz * 0.45}" pos="{bx} 0 {bz * 0.3}"
+            rgba="{ROBOT_GREY}" contype="0" conaffinity="0" mass="0"/>
+      <geom name="scoop" type="box" size="0.008 {by * 0.9} 0.008" pos="{bx + 0.006} 0 {-bz + 0.004}"
+            rgba="{ROBOT_GREY}" mass="0.01"/>
+      <geom name="hand_l" type="box" size="0.012 0.008 0.01" pos="{bx - 0.008} {by + 0.004} {-0.01}"
+            rgba="{ROBOT_GREY}" mass="0.005"/>
+      <geom name="hand_r" type="box" size="0.012 0.008 0.01" pos="{bx - 0.008} {-by - 0.004} {-0.01}"
+            rgba="{ROBOT_GREY}" mass="0.005"/>
       <site name="imu" pos="0 0 0" size="0.005"/>
-      <site name="tof" pos="{cx} 0 0.005" size="0.004" rgba="1 .2 .2 1"/>
-      <site name="cliff_l" pos="{cx - 0.005} {cy - 0.015} {-cz}" size="0.003"/>
-      <site name="cliff_c" pos="{cx - 0.005} 0 {-cz}" size="0.003"/>
-      <site name="cliff_r" pos="{cx - 0.005} {-cy + 0.015} {-cz}" size="0.003"/>
-      <body name="wheel_left" pos="0 {spec.track_half} {wheel_z}">
-        <joint name="wheel_left" type="hinge" axis="0 1 0" armature="0.0001" damping="0.0002"/>
-        <geom type="cylinder" size="{spec.wheel_radius} {spec.wheel_half_width}"
-              zaxis="0 1 0" mass="{spec.wheel_mass}" friction="1.2 0.01 0.001" rgba=".15 .15 .15 1"/>
-      </body>
-      <body name="wheel_right" pos="0 {-spec.track_half} {wheel_z}">
-        <joint name="wheel_right" type="hinge" axis="0 1 0" armature="0.0001" damping="0.0002"/>
-        <geom type="cylinder" size="{spec.wheel_radius} {spec.wheel_half_width}"
-              zaxis="0 1 0" mass="{spec.wheel_mass}" friction="1.2 0.01 0.001" rgba=".15 .15 .15 1"/>
-      </body>
-      <body name="head" pos="0 0 {cz + hz + 0.004}">
-        <joint name="head_tilt" type="hinge" axis="0 -1 0" range="-0.3 0.6" damping="0.01"/>
-        <geom name="head" type="box" size="{hx} {hy} {hz}" mass="{spec.head_mass}"/>
-        <geom name="eye_l" type="cylinder" size="0.012 0.002" pos="{hx} 0.022 0.004"
-              zaxis="1 0 0" rgba=".1 .6 .9 1" contype="0" conaffinity="0"/>
-        <geom name="eye_r" type="cylinder" size="0.012 0.002" pos="{hx} -0.022 0.004"
-              zaxis="1 0 0" rgba=".1 .6 .9 1" contype="0" conaffinity="0"/>
-        <camera name="eye" pos="{hx + 0.002} 0 -0.012" xyaxes="0 -1 0 0 0 1" fovy="{fovy}"/>
+      <site name="tof" pos="{bx + 0.002} 0 {-bz * 0.35}" size="0.005" rgba="1 .2 .2 1"/>
+      <site name="side_l" pos="{bx + 0.004} {by + 0.004} -0.01" zaxis="{sx} {sy} 0" size="0.004" rgba="1 .2 .2 1"/>
+      <site name="side_r" pos="{bx + 0.004} {-by - 0.004} -0.01" zaxis="{sx} {-sy} 0" size="0.004" rgba="1 .2 .2 1"/>
+      <site name="cliff_l" pos="{bx + 0.01} {by * 0.75} {-bz}" size="0.003"/>
+      <site name="cliff_c" pos="{bx + 0.01} 0 {-bz}" size="0.003"/>
+      <site name="cliff_r" pos="{bx + 0.01} {-by * 0.75} {-bz}" size="0.003"/>
+      {_track(spec, "left", 1)}
+      {_track(spec, "right", -1)}
+
+      <body name="neck" pos="{-bx * 0.3} 0 {bz}">
+        <joint name="head_pan" type="hinge" axis="0 0 1" range="{-spec.pan_range} {spec.pan_range}" damping="0.004"/>
+        <geom name="neck" type="capsule" fromto="0 0 0 0 0 {spec.neck_height}" size="0.009"
+              rgba="{ROBOT_GREY}" mass="0.03"/>
+        <body name="head" pos="0.01 0 {spec.neck_height + er * 0.6}">
+          <joint name="head_tilt" type="hinge" axis="0 -1 0" range="-0.4 0.7" damping="0.004"/>
+          <geom name="eye_l" type="cylinder" size="{er} {el}" pos="0 {er + 0.004} 0" zaxis="1 0 0"
+                rgba="{ROBOT_GREY}" mass="{spec.head_mass / 2}"/>
+          <geom name="eye_r" type="cylinder" size="{er} {el}" pos="0 {-er - 0.004} 0" zaxis="1 0 0"
+                rgba="{ROBOT_GREY}" mass="{spec.head_mass / 2}"/>
+          <geom name="lens_l" type="cylinder" size="{er * 0.6} 0.002" pos="{el} {er + 0.004} 0"
+                zaxis="1 0 0" rgba=".05 .05 .08 1" contype="0" conaffinity="0" mass="0"/>
+          <geom name="lens_r" type="cylinder" size="{er * 0.6} 0.002" pos="{el} {-er - 0.004} 0"
+                zaxis="1 0 0" rgba=".05 .05 .08 1" contype="0" conaffinity="0" mass="0"/>
+          <camera name="eye" pos="{el + 0.003} {er + 0.004} 0" xyaxes="0 -1 0 0 0 1" fovy="{fovy}"/>
+        </body>
       </body>
     </body>
 
@@ -177,21 +221,30 @@ def build_xml(spec: RobotSpec = RobotSpec()) -> str:
     <camera name="overhead" pos="0 -3.2 4.2" xyaxes="1 0 0 0 0.79 0.62" fovy="55"/>
   </worldbody>
 
+  <equality>
+    <joint joint1="wheel_left_rear" joint2="wheel_left_mid" polycoef="0 1 0 0 0"/>
+    <joint joint1="wheel_left_front" joint2="wheel_left_mid" polycoef="0 1 0 0 0"/>
+    <joint joint1="wheel_right_rear" joint2="wheel_right_mid" polycoef="0 1 0 0 0"/>
+    <joint joint1="wheel_right_front" joint2="wheel_right_mid" polycoef="0 1 0 0 0"/>
+  </equality>
+
   <actuator>
-    <velocity name="left" joint="wheel_left" kv="{spec.motor_kv}"
+    <velocity name="left" joint="wheel_left_mid" kv="{spec.motor_kv}"
               ctrlrange="{-spec.max_wheel_speed} {spec.max_wheel_speed}"
               forcerange="{-spec.motor_torque} {spec.motor_torque}"/>
-    <velocity name="right" joint="wheel_right" kv="{spec.motor_kv}"
+    <velocity name="right" joint="wheel_right_mid" kv="{spec.motor_kv}"
               ctrlrange="{-spec.max_wheel_speed} {spec.max_wheel_speed}"
               forcerange="{-spec.motor_torque} {spec.motor_torque}"/>
-    <position name="head_tilt" joint="head_tilt" kp="0.5" ctrlrange="-0.3 0.6"/>
+    <position name="head_pan" joint="head_pan" kp="0.3" ctrlrange="{-spec.pan_range} {spec.pan_range}"
+              forcerange="-0.15 0.15"/>
+    <position name="head_tilt" joint="head_tilt" kp="0.3" ctrlrange="-0.4 0.7" forcerange="-0.15 0.15"/>
   </actuator>
 
   <sensor>
     <accelerometer name="accel" site="imu"/>
     <gyro name="gyro" site="imu"/>
-    <jointvel name="enc_left" joint="wheel_left"/>
-    <jointvel name="enc_right" joint="wheel_right"/>
+    <jointvel name="enc_left" joint="wheel_left_mid"/>
+    <jointvel name="enc_right" joint="wheel_right_mid"/>
   </sensor>
 </mujoco>
 """

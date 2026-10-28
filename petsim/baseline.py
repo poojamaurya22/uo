@@ -8,15 +8,16 @@ import math
 
 import numpy as np
 
-from petsim.env import OBS_DIM, PERSON_RANGE, TOF_ZONES
+from petsim.env import OBS, PERSON_RANGE, TOF_ZONES
 
 TOF_RANGE = 4.0  # must match RobotSpec.tof_range
 
 
 def follow_controller(obs, follow_distance=1.0):
-    tof = obs[:TOF_ZONES * TOF_ZONES].reshape(TOF_ZONES, TOF_ZONES) * TOF_RANGE
-    cliff = obs[64:67]
-    visible, s, c, dist, lost = obs[OBS_DIM - 7:OBS_DIM - 2]
+    tof = obs[OBS["tof"]].reshape(TOF_ZONES, TOF_ZONES) * TOF_RANGE
+    cliff = obs[OBS["cliff"]]
+    side_left, side_right = obs[OBS["side"]] * TOF_RANGE
+    visible, s, c, dist, lost = obs[OBS["person"]]
     bearing = math.atan2(s, c)
     dist *= PERSON_RANGE
 
@@ -32,13 +33,15 @@ def follow_controller(obs, follow_distance=1.0):
 
     # Obstacles: rows 2-6 look at body height; columns split left/centre/right.
     band = tof[2:7]
-    left, centre, right = band[:, :3].min(), band[:, 3:5].min(), band[:, 5:].min()
+    left = min(band[:, :3].min(), side_left)
+    centre = band[:, 3:5].min()
+    right = min(band[:, 5:].min(), side_right)
     if centre < 0.35 and fwd > 0:
         fwd = 0.0
         turn = 0.7 if left > right else -0.7
     elif min(left, right) < 0.2:
         turn += 0.4 if left > right else -0.4
 
-    left_wheel = np.clip(fwd - turn, -1, 1)
-    right_wheel = np.clip(fwd + turn, -1, 1)
-    return np.array([left_wheel, right_wheel])
+    left_track = np.clip(fwd - turn, -1, 1)
+    right_track = np.clip(fwd + turn, -1, 1)
+    return np.array([left_track, right_track])

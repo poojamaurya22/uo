@@ -1,9 +1,13 @@
-"""Gymnasium environment: the pet robot learns to follow a person around a room.
+"""Gymnasium environment: the Wall-E robot learns to follow a person around a room.
 
-Observations are built only from sensors the real robot will have (8x8 ToF,
-cliff sensors, IMU, wheel encoders, and a person detector running on the
-camera), with noise and dropouts, so a trained policy can transfer to hardware.
-The reward uses the true person position, which only the simulator knows.
+Observations are built only from sensors the real robot will have (8x8 chest
+ToF, side ToFs, cliff sensors, IMU, track encoders, neck angle, and a person
+detector running on the eye camera), with noise and dropouts, so a trained
+policy can transfer to hardware. The reward uses the true person position,
+which only the simulator knows.
+
+The neck is not part of the policy: like a real robot's reflex, it turns the
+head towards the person whenever the camera sees them, and tilts up to their face.
 """
 
 import math
@@ -28,7 +32,17 @@ TOF_ZONES = 8
 CLIFF_RANGE = 0.2
 PERSON_RANGE = 6.0
 LOST_MEMORY_S = 5.0
-OBS_DIM = TOF_ZONES * TOF_ZONES + 3 + 3 + 2 + 5 + 2
+SIDE_RAYS = 3  # rays spread over each side sensor's field of view
+
+# Observation layout, so controllers can read fields by name.
+_FIELDS = [("tof", TOF_ZONES * TOF_ZONES), ("cliff", 3), ("side", 2), ("imu", 3), ("tracks", 2),
+           ("person", 5), ("pan", 1), ("prev_action", 2)]
+OBS = {}
+_i = 0
+for _name, _size in _FIELDS:
+    OBS[_name] = slice(_i, _i + _size)
+    _i += _size
+OBS_DIM = _i
 
 # Area the person walks in: the room minus a margin, never near the stairwell.
 WALK_X = (-ROOM_HALF + 0.3, HOLE_X[0] - 0.3)
@@ -119,13 +133,15 @@ class PetFollowEnv(gym.Env):
         self.tof_site = m.site("tof").id
         self.cliff_sites = [m.site(n).id for n in ("cliff_l", "cliff_c", "cliff_r")]
         self.cam_id = m.camera("eye").id
+        self.side_sites = [m.site("side_l").id, m.site("side_r").id]
+        self.head_pan_act = m.actuator("head_pan").id
         self.head_tilt_act = m.actuator("head_tilt").id
+        self.pan_qpos = m.joint("head_pan").qposadr[0]
 
         robot_bodies = {b for b in range(m.nbody) if m.body_rootid[b] == self.robot_body}
         self.is_robot_geom = np.array([m.geom_bodyid[g] in robot_bodies for g in range(m.ngeom)])
         self.is_floor_geom = np.array([m.geom(g).name.startswith("floor") for g in range(m.ngeom)])
-        self.wheel_geoms = [g for g in range(m.ngeom) if m.geom_bodyid[g] in
-                            (m.body("wheel_left").id, m.body("wheel_right").id)]
+        self.wheel_geoms = [g for g in range(m.ngeom) if m.body(m.geom_bodyid[g]).name.startswith("wheel_")]
 
         # ToF zone directions in the sensor frame: rows top->bottom, cols left->right.
         half = math.radians(robot.tof_fov_deg) / 2 * (1 - 1 / TOF_ZONES)
@@ -137,6 +153,8 @@ class PetFollowEnv(gym.Env):
                              math.cos(pitch) * math.sin(yaw),
                              math.sin(pitch)])
         self.tof_dirs_local = np.array(dirs)
+        spread = math.radians(robot.side_tof_fov_deg) / 2 * 0.75
+        self.side_offsets = np.linspace(-spread, spread, SIDE_RAYS)
 
         # Nominal values so domain randomization always starts from the spec.
         self._nominal = {
@@ -211,9 +229,11 @@ class PetFollowEnv(gym.Env):
         self._place_obstacles([robot_xy, person_xy])
 
         q = self.data.qpos
-        q[self.root_qpos:self.root_qpos + 3] = [*robot_xy, self.robot.clearance + self.robot.chassis_half[2]]
+        q[self.root_qpos:self.root_qpos + 3] = [*robot_xy, self.robot.body_z]
         q[self.root_qpos + 3:self.root_qpos + 7] = [math.cos(robot_yaw / 2), 0, 0, math.sin(robot_yaw / 2)]
-        self.data.ctrl[self.head_tilt_act] = 0.15
+        self.data.ctrl[self.head_pan_act] = 0.0
+        self.data.ctrl[self.head_tilt_act] = 0.2
+        self.detection = None
 
         self.walker = PersonWalker(rng, self._blocked, lambda: self.robot_pose()[0][:2])
         self.walker.reset(person_xy)
@@ -256,6 +276,24 @@ class PetFollowEnv(gym.Env):
         dist = dist * (1 + 0.02 * self.np_random.standard_normal(dist.shape))
         return np.clip(dist, 0, self.robot.tof_range) / self.robot.tof_range
 
+    def _side(self):
+        """Single-zone ToF in each "hand", angled outwards: covers the chest ToF's blind spots."""
+        d, out = self.data, []
+        _, yaw = self.robot_pose()
+        for site, sign in zip(self.side_sites, (1, -1)):
+            centre = yaw + sign * math.radians(self.robot.side_tof_yaw_deg)
+            vec = np.array([[math.cos(centre + o), math.sin(centre + o), 0.0] for o in self.side_offsets])
+            geom = np.zeros(SIDE_RAYS, dtype=np.int32)
+            dist = np.zeros(SIDE_RAYS)
+            mujoco.mj_multiRay(self.model, d, d.site_xpos[site], vec.reshape(-1), SENSOR_GEOMGROUP, 1,
+                               -1, geom, dist, None, SIDE_RAYS, self.robot.tof_range)
+            dist = np.where(dist < 0, self.robot.tof_range, dist)
+            out.append(dist.min() * (1 + 0.02 * self.np_random.standard_normal()))
+        return np.clip(out, 0, self.robot.tof_range) / self.robot.tof_range
+
+    def _pan(self):
+        return float(self.data.qpos[self.pan_qpos])
+
     def _cliff(self):
         d, out = self.data, []
         for s in self.cliff_sites:
@@ -265,11 +303,18 @@ class PetFollowEnv(gym.Env):
         return np.array(out) / CLIFF_RANGE
 
     def _detect_person(self):
-        """Simulates a camera person detector: field of view, occlusion, noise, misses."""
-        dist, bearing = self.person_relative()
-        if dist > PERSON_RANGE or abs(bearing) > math.radians(self.robot.camera_hfov_deg) / 2:
-            return None
+        """Simulates a camera person detector: field of view, occlusion, noise, misses.
+
+        Returns (distance, bearing relative to the camera) or None.
+        """
+        dist, _ = self.person_relative()
         cam = self.data.cam_xpos[self.cam_id]
+        rot = self.data.cam_xmat[self.cam_id].reshape(3, 3)
+        local = rot.T @ (np.array([*self.walker.pos, 0.9]) - cam)
+        forward, left = -local[2], -local[0]
+        bearing = math.atan2(left, forward)
+        if dist > PERSON_RANGE or forward <= 0 or abs(bearing) > math.radians(self.robot.camera_hfov_deg) / 2:
+            return None
         target = np.array([*self.walker.pos, 0.5])
         geom = np.zeros(1, dtype=np.int32)
         mujoco.mj_ray(self.model, self.data, cam, target - cam, SENSOR_GEOMGROUP, 1, -1, geom)
@@ -279,10 +324,23 @@ class PetFollowEnv(gym.Env):
         dist *= 1 + 0.06 * self.np_random.standard_normal()
         return dist, bearing
 
+    def _aim_head(self):
+        """Neck reflex: look at the person while visible, drift back to centre once lost."""
+        pan_range = self.robot.pan_range
+        if self.detection is not None:
+            dist, bearing_cam = self.detection
+            pan = np.clip(self._pan() + 0.8 * bearing_cam, -pan_range, pan_range)
+            cam_z = self.data.cam_xpos[self.cam_id][2]
+            self.data.ctrl[self.head_pan_act] = pan
+            self.data.ctrl[self.head_tilt_act] = np.clip(math.atan2(1.2 - cam_z, max(dist, 0.3)), -0.4, 0.7)
+        elif self.time_since_seen > 2.0:
+            self.data.ctrl[self.head_pan_act] *= 0.9
+
     def _observe(self):
-        det = self._detect_person()
+        det = self.detection = self._detect_person()
         if det is not None:
-            dist, bearing = det
+            dist, bearing_cam = det
+            bearing = _wrap(bearing_cam + self._pan())  # relative to the body, via the pan servo
             self.last_seen = (math.sin(bearing), math.cos(bearing), min(dist, PERSON_RANGE) / PERSON_RANGE)
             self.time_since_seen = 0.0
         sens = self.data.sensordata
@@ -291,10 +349,12 @@ class PetFollowEnv(gym.Env):
         enc = sens[6:8] / self.robot.max_wheel_speed
         person = [float(det is not None), *self.last_seen,
                   min(self.time_since_seen, LOST_MEMORY_S) / LOST_MEMORY_S]
-        return np.concatenate([
-            self._tof(), self._cliff(), [accel[0] / 10, accel[1] / 10, gyro[2] / 5],
-            enc, person, self.prev_action,
+        obs = np.concatenate([
+            self._tof(), self._cliff(), self._side(), [accel[0] / 10, accel[1] / 10, gyro[2] / 5],
+            enc, person, [self._pan() / self.robot.pan_range], self.prev_action,
         ]).astype(np.float32)
+        assert obs.shape == (OBS_DIM,)
+        return obs
 
     # ------------------------------------------------------------------- step
 
@@ -311,6 +371,7 @@ class PetFollowEnv(gym.Env):
     def step(self, action):
         action = np.clip(np.asarray(action, dtype=float), -1, 1)
         self.data.ctrl[:2] = action * self.robot.max_wheel_speed
+        self._aim_head()
         for _ in range(self.frame_skip):
             mujoco.mj_step(self.model, self.data)
         collided = self._collided()
@@ -338,7 +399,7 @@ class PetFollowEnv(gym.Env):
 
         obs = self._observe()
         info = {"distance": dist, "bearing": bearing, "collided": collided,
-                "fell": bool(fell), "flipped": bool(flipped), "person_visible": bool(obs[OBS_DIM - 7])}
+                "fell": bool(fell), "flipped": bool(flipped), "person_visible": bool(obs[OBS["person"]][0])}
         return obs, float(reward), terminated, self.steps >= self.max_steps, info
 
     # --------------------------------------------------------------- cameras
