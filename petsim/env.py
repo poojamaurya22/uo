@@ -1,7 +1,7 @@
 """Gymnasium environment: the Wall-E robot learns to follow a person around a room.
 
 Observations are built only from sensors the real robot will have (8x8 chest
-ToF, side ToFs, cliff sensors, IMU, track encoders, neck angle, and a person
+ToF, side ToFs, front and rear cliff sensors, IMU, track encoders, neck angle, and a person
 detector running on the eye camera), with noise and dropouts, so a trained
 policy can transfer to hardware. The reward uses the true person position,
 which only the simulator knows.
@@ -35,7 +35,7 @@ LOST_MEMORY_S = 5.0
 SIDE_RAYS = 3  # rays spread over each side sensor's field of view
 
 # Observation layout, so controllers can read fields by name.
-_FIELDS = [("tof", TOF_ZONES * TOF_ZONES), ("cliff", 3), ("side", 2), ("imu", 3), ("tracks", 2),
+_FIELDS = [("tof", TOF_ZONES * TOF_ZONES), ("cliff", 5), ("side", 2), ("imu", 3), ("tracks", 2),
            ("person", 5), ("pan", 1), ("prev_action", 2)]
 OBS = {}
 _i = 0
@@ -131,7 +131,7 @@ class PetFollowEnv(gym.Env):
         self.obstacle_mocap = [m.body(o[0]).mocapid[0] for o in OBSTACLES]
         self.obstacle_radius = [max(o[2][:2]) if o[1] == "box" else o[2][0] for o in OBSTACLES]
         self.tof_site = m.site("tof").id
-        self.cliff_sites = [m.site(n).id for n in ("cliff_l", "cliff_c", "cliff_r")]
+        self.cliff_sites = [m.site(n).id for n in ("cliff_l", "cliff_c", "cliff_r", "cliff_rear_l", "cliff_rear_r")]
         self.cam_id = m.camera("eye").id
         self.side_sites = [m.site("side_l").id, m.site("side_r").id]
         self.head_pan_act = m.actuator("head_pan").id

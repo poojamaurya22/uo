@@ -2,7 +2,7 @@ import numpy as np
 from gymnasium.utils.env_checker import check_env
 
 from petsim.baseline import follow_controller
-from petsim.env import OBS_DIM, PetFollowEnv
+from petsim.env import OBS, OBS_DIM, PetFollowEnv
 
 
 def test_gymnasium_api():
@@ -30,9 +30,23 @@ def test_cliff_sensors_see_the_stairwell():
     cliff = 0.0
     for _ in range(30):
         obs, *_ = env.step(np.array([0.3, 0.3]))
-        cliff = max(cliff, obs[64:67].max())
+        cliff = max(cliff, obs[OBS["cliff"]][:3].max())
     assert obs.shape == (OBS_DIM,)
     assert cliff > 0.5
+
+
+def test_rear_cliff_sensors_see_the_stairwell():
+    env = PetFollowEnv(randomize=False)
+    env.reset(seed=0)
+    q = env.data.qpos
+    q[0:2] = [1.25, 0.0]  # just short of the stairwell, backing into it
+    q[3:7] = [0, 0, 0, 1]
+    env.data.mocap_pos[:, :2] = [-1.5, -1.5]
+    rear = 0.0
+    for _ in range(30):
+        obs, *_ = env.step(np.array([-0.3, -0.3]))
+        rear = max(rear, obs[OBS["cliff"]][3:].max())
+    assert rear > 0.5
 
 
 def test_baseline_beats_random():

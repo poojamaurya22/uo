@@ -185,6 +185,10 @@ def build_xml(spec: RobotSpec = RobotSpec()) -> str:
       <site name="cliff_l" pos="{bx + 0.01} {by * 0.75} {-bz}" size="0.003"/>
       <site name="cliff_c" pos="{bx + 0.01} 0 {-bz}" size="0.003"/>
       <site name="cliff_r" pos="{bx + 0.01} {-by * 0.75} {-bz}" size="0.003"/>
+      <site name="cliff_rear_l" pos="{-bx - 0.006} {by * 0.75} {-bz}" size="0.003"/>
+      <site name="cliff_rear_r" pos="{-bx - 0.006} {-by * 0.75} {-bz}" size="0.003"/>
+      <geom name="rear_lip" type="box" size="0.006 {by * 0.9} 0.008" pos="{-bx - 0.004} 0 {-bz + 0.004}"
+            rgba="{ROBOT_GREY}" mass="0.01"/>
       {_track(spec, "left", 1)}
       {_track(spec, "right", -1)}
 

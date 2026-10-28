@@ -21,9 +21,12 @@ def follow_controller(obs, follow_distance=1.0):
     bearing = math.atan2(s, c)
     dist *= PERSON_RANGE
 
-    # Cliff ahead: back up and turn away, nothing else matters.
-    if cliff.max() > 0.5:
-        return np.array([-0.6, -0.2]) if cliff[0] > cliff[2] else np.array([-0.2, -0.6])
+    # Cliff: drive away from it, nothing else matters.
+    front, rear = cliff[:3], cliff[3:]
+    if rear.max() > 0.5:
+        return np.array([0.6, 0.6])
+    if front.max() > 0.5:
+        return np.array([-0.6, -0.2]) if front[0] > front[2] else np.array([-0.2, -0.6])
 
     if lost < 1.0:  # seen within the last few seconds
         turn = np.clip(1.5 * bearing, -1, 1)
