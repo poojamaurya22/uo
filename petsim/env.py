@@ -390,7 +390,7 @@ class PetFollowEnv(gym.Env):
         if dist < 0.45:
             reward -= 1.0  # too close: tripping hazard
         if collided:
-            reward -= 1.0
+            reward -= 3.0  # at -1 the policy learned that bumping furniture was worth it
         reward -= 0.05 * float(np.sum((action - self.prev_action) ** 2))
         terminated = fell or flipped
         if terminated:
