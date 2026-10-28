@@ -47,6 +47,20 @@ sometimes stops. You wait if the robot is in your way.
 (±20%, left and right differ), mass and floor grip (tile vs. rug). This makes a
 trained policy robust enough to have a chance on real hardware.
 
+## Safety reflexes
+
+A learned brain is good but never guaranteed, so `petsim/safety.py` sits
+between any controller and the motors, like a Roomba's firmware. On the real
+robot it runs on the microcontroller, independent of the Pi:
+
+- **Cliff**: if a front cliff sensor loses the floor, back straight off; if a
+  rear one does, drive forward.
+- **Tilt**: if the body tilts more than ~14° (the tracks are climbing
+  something), stop. Tilt comes from a complementary filter fusing the gyro and
+  accelerometer, so hard braking doesn't trigger it.
+
+`evaluate.py --no-safety` scores a controller without them.
+
 ## The task: follow me
 
 - **Action**: left and right track speeds, in −1 … 1.
@@ -159,7 +173,10 @@ tests/               physics and sensor sanity checks
 2. **Hardware questions to answer in sim**: ~~Is one forward ToF enough?~~ No:
    adding the two side sensors cut the baseline's furniture bumps by about 30%.
    ~~Are front cliff sensors enough?~~ No: the first Wall-E brain backed away
-   from the person straight into the stairwell. Rear cliff sensors fixed it.
+   from the person straight into the stairwell. Rear cliff sensors helped, but
+   the brain still occasionally ignored them, which led to the safety reflexes.
+   ~~Can the tracks climb furniture?~~ Yes: on a low box they climbed and
+   tipped over backwards. The tilt reflex stops them.
    Still open: how much does camera field of view matter? Is the robot fast enough?
 3. **More behaviours**: "come here" (go to a voice-call location), return to the
    charging dock, explore and map rooms, react to being picked up (IMU).

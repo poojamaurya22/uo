@@ -3,6 +3,7 @@ from gymnasium.utils.env_checker import check_env
 
 from petsim.baseline import follow_controller
 from petsim.env import OBS, OBS_DIM, PetFollowEnv
+from petsim.safety import safety_filter
 
 
 def test_gymnasium_api():
@@ -64,3 +65,20 @@ def test_baseline_beats_random():
     baseline = np.mean([score(follow_controller, s) for s in range(3)])
     random = np.mean([score(lambda o: rng.uniform(-1, 1, 2), s) for s in range(3)])
     assert baseline > random
+
+
+def test_safety_reflex_overrides_controller():
+    floor, gone = 0.05, 1.0
+    go = np.array([1.0, 1.0])
+    assert np.allclose(safety_filter(np.full(5, floor), 0.0, go), go)
+    assert safety_filter(np.array([gone, floor, floor, floor, floor]), 0.0, go).max() < 0  # backs off
+    assert safety_filter(np.array([floor, floor, floor, gone, floor]), 0.0, -go).min() > 0  # drives off
+    assert np.allclose(safety_filter(np.full(5, floor), 0.4, go), 0)  # tilted: stop
+
+
+def test_tilt_estimate_ignores_driving_jolts():
+    env = PetFollowEnv(randomize=False)
+    env.reset(seed=0)
+    for i in range(60):  # full-speed starts, stops and reversals on flat floor
+        env.step(np.array([1.0, 1.0]) if (i // 10) % 2 == 0 else np.array([-1.0, -1.0]))
+        assert env.last_tilt < 0.25

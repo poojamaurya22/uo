@@ -28,8 +28,8 @@ def load_controller(name):
     return lambda obs: model.predict(obs, deterministic=True)[0]
 
 
-def run(controller, episodes, seed, video=None, photo=None):
-    env = PetFollowEnv()
+def run(controller, episodes, seed, video=None, photo=None, safety=True):
+    env = PetFollowEnv(safety=safety)
     frames, totals = [], []
     stats = {"in_range": 0, "visible": 0, "collisions": 0, "too_close": 0, "steps": 0, "falls": 0}
     for ep in range(episodes):
@@ -78,5 +78,6 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=1000)
     parser.add_argument("--video", help="save the first episode as an mp4")
     parser.add_argument("--photo", help="save a photo from the robot's camera at the end of episode 1")
+    parser.add_argument("--no-safety", action="store_true", help="disable the cliff safety reflex")
     args = parser.parse_args()
-    run(load_controller(args.controller), args.episodes, args.seed, args.video, args.photo)
+    run(load_controller(args.controller), args.episodes, args.seed, args.video, args.photo, not args.no_safety)

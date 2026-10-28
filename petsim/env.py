@@ -26,6 +26,7 @@ from petsim.robot import (
     RobotSpec,
     build_xml,
 )
+from petsim.safety import safety_filter
 
 CONTROL_DT = 0.05  # 20 Hz, comfortable for a Pi Zero 2 W + microcontroller
 TOF_ZONES = 8
@@ -111,11 +112,13 @@ class PetFollowEnv(gym.Env):
         episode_seconds: float = 30.0,
         follow_distance: float = 1.0,
         randomize: bool = True,
+        safety: bool = True,
     ):
         self.robot = robot
         self.render_mode = render_mode
         self.follow_distance = follow_distance
         self.randomize = randomize
+        self.safety = safety
         self.max_steps = int(episode_seconds / CONTROL_DT)
 
         self.model = mujoco.MjModel.from_xml_string(build_xml(robot))
@@ -234,6 +237,7 @@ class PetFollowEnv(gym.Env):
         self.data.ctrl[self.head_pan_act] = 0.0
         self.data.ctrl[self.head_tilt_act] = 0.2
         self.detection = None
+        self.up_estimate = np.array([0.0, 0.0, 1.0])
 
         self.walker = PersonWalker(rng, self._blocked, lambda: self.robot_pose()[0][:2])
         self.walker.reset(person_xy)
@@ -336,6 +340,15 @@ class PetFollowEnv(gym.Env):
         elif self.time_since_seen > 2.0:
             self.data.ctrl[self.head_pan_act] *= 0.9
 
+    def _fuse_tilt(self, accel, gyro, blend=0.05):
+        """Complementary filter: rotate the "up" estimate with the gyro, then nudge it
+        towards the accelerometer, which knows true down but is jolted by driving."""
+        up = self.up_estimate - CONTROL_DT * np.cross(gyro, self.up_estimate)
+        measured = accel / max(np.linalg.norm(accel), 1e-6)
+        up = (1 - blend) * up + blend * measured
+        self.up_estimate = up / np.linalg.norm(up)
+        return math.acos(np.clip(self.up_estimate[2], -1, 1))
+
     def _observe(self):
         det = self.detection = self._detect_person()
         if det is not None:
@@ -346,11 +359,13 @@ class PetFollowEnv(gym.Env):
         sens = self.data.sensordata
         accel = sens[0:3] + 0.05 * self.np_random.standard_normal(3)
         gyro = sens[3:6] + 0.01 * self.np_random.standard_normal(3)
+        self.last_tilt = self._fuse_tilt(accel, gyro)
         enc = sens[6:8] / self.robot.max_wheel_speed
         person = [float(det is not None), *self.last_seen,
                   min(self.time_since_seen, LOST_MEMORY_S) / LOST_MEMORY_S]
+        self.last_cliff = self._cliff()
         obs = np.concatenate([
-            self._tof(), self._cliff(), self._side(), [accel[0] / 10, accel[1] / 10, gyro[2] / 5],
+            self._tof(), self.last_cliff, self._side(), [accel[0] / 10, accel[1] / 10, gyro[2] / 5],
             enc, person, [self._pan() / self.robot.pan_range], self.prev_action,
         ]).astype(np.float32)
         assert obs.shape == (OBS_DIM,)
@@ -370,6 +385,8 @@ class PetFollowEnv(gym.Env):
 
     def step(self, action):
         action = np.clip(np.asarray(action, dtype=float), -1, 1)
+        if self.safety:
+            action = safety_filter(self.last_cliff, self.last_tilt, action)
         self.data.ctrl[:2] = action * self.robot.max_wheel_speed
         self._aim_head()
         for _ in range(self.frame_skip):
