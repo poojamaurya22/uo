@@ -50,14 +50,72 @@ trained policy robust enough to have a chance on real hardware.
   bumping into things, getting closer than 0.45 m (a tripping hazard) and
   jerky driving. Falling down the stairs ends the episode with a big penalty.
 
-## Quick start
+## Setup (one time)
+
+You need **Python 3.10+** and **Git**.
+
+**1. Download the project**
+
+```bash
+git clone -b claude/bold-babbage-0rrozi https://github.com/poojamaurya22/uo.git
+cd uo
+```
+
+**2. Create and activate an isolated Python environment**
+
+Windows:
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+```
+
+Mac / Linux:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+**3. Install the libraries** (a few minutes)
 
 ```bash
 pip install -r requirements.txt
+```
+
+Next time, just `cd uo` and run the activate command from step 2.
+
+## Watch the robot live
+
+Windows / Linux:
+
+```bash
+python scripts/watch.py --controller baseline
+```
+
+Mac (MuJoCo's viewer needs its own launcher, `mjpython`, installed with it):
+
+```bash
+mjpython scripts/watch.py --controller baseline
+```
+
+A 3D window opens with the robot following the person. To watch the trained
+brain instead, use `--controller runs/ppo/best_model.zip` after training.
+
+| Control | Action |
+|---|---|
+| Left-drag | Rotate the view |
+| Right-drag | Move the view |
+| Scroll | Zoom |
+| Double-click an object, then Ctrl + right-drag | Push it around |
+| Tab | Show / hide side panels |
+
+## Other commands
+
+```bash
 python -m pytest -q tests                          # sanity checks (~10 s)
 python scripts/evaluate.py --controller baseline   # score the hand-written controller
-python scripts/watch.py --controller baseline      # live 3D view (macOS: mjpython)
-python scripts/train.py --steps 2000000            # train (~40 min on 4 cores)
+python scripts/train.py --steps 2000000            # train a brain (~40 min on 4 cores)
 python scripts/evaluate.py --controller runs/ppo/best_model.zip --video follow.mp4 --photo photo.png
 ```
 
