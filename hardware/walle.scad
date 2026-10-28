@@ -183,6 +183,12 @@ module body() {
             translate([body_l / 2 - 14, side * body_w / 2, side_tof_z + 7]) rotate([90, 0, 0])
                 cylinder(d = 5, h = 4 * wall, center = true);
         }
+        // accessory mounts on both sides, e.g. arms later: 2 x M3 + a wire hole
+        for (side = [-1, 1]) {
+            for (dx = [-20, 0]) translate([dx, side * body_w / 2, 62]) rotate([90, 0, 0])
+                cylinder(d = 2.6, h = 4 * wall, center = true);
+            translate([-10, side * body_w / 2, 74]) rotate([90, 0, 0]) cylinder(d = 8, h = 4 * wall, center = true);
+        }
         // scoop (front) and lip (rear) mounts: 2 x M3 each, plus a wire hole
         for (sx = [-1, 1]) {
             for (dy = [-20, 20])
@@ -198,6 +204,13 @@ module body() {
 
 // ---------------------------------------------------------------------- lid
 pan_x = neck_x;  // pan servo shaft position
+// Modular neck interface: the lid has a standard opening with a ledge below it;
+// a neck_mount plate drops in flush with the top and holds the pan servo. A
+// stronger servo or the extending neck later only needs a new plate.
+mount = [50, 30];                                   // opening = plate size, x by y
+mount_x = pan_x - sg90_shaft_from_end + sg90[0] / 2; // centred on the servo body
+mount_ledge = [44, 22];                             // ledge opening: passes servos up to MG996R size
+mount_holes = [47, 27];                             // 4 x M2.5 plate screws, into the ledge
 module lid() {
     difference() {
         union() {
@@ -215,13 +228,12 @@ module lid() {
                 cylinder(d = 3.4, h = 20);
                 translate([0, 0, 5 + lid_t - 1.8]) cylinder(d1 = 3.4, d2 = 6.6, h = 1.81);
             }
-        // pan servo: drops in from above, tabs rest on the lid
-        translate([pan_x - sg90_shaft_from_end + sg90[0] / 2, 0, 0]) {
-            cube([sg90[0] + 2 * fit, sg90[1] + 2 * fit, 20], center = true);
-            for (sx = [-1, 1]) translate([sx * sg90_tab_hole / 2, 0, -5]) cylinder(d = 1.8, h = 20);
+        // neck mount opening (the ledge below it is added after this difference)
+        translate([mount_x, 0, 0]) {
+            cube([mount[0] + 2 * fit, mount[1] + 2 * fit, 20], center = true);
         }
-        // camera ribbon + tilt servo cable, behind the neck
-        translate([pan_x - 20, 0, 0]) cube([4, 18, 20], center = true);
+        // cable slot behind the neck: camera ribbon, servo wires, room for an extending neck's wiring
+        translate([pan_x - 26, 0, 0]) cube([5, 20, 20], center = true);
         // two I2S microphones under the lid, listening through small holes
         for (sy = [-1, 1]) for (d = [[0, 0], [2.5, 0], [-2.5, 0], [0, 2.5], [0, -2.5]])
             translate([20 + d[0], sy * 35 + d[1], -5]) cylinder(d = 1.2, h = 20);
@@ -229,6 +241,25 @@ module lid() {
         for (sy = [-1, 1], dy = [14 : 6 : 44]) translate([-body_l / 2 + 12, sy * dy, 0]) cube([14, 3, 20], center = true);
         // decorative hatch lines
         for (dy = [-46, -24, 24, 46]) translate([25, dy, lid_t - 0.6]) cube([40, 0.8, 2], center = true);
+    }
+    // ledge under the opening that the neck mount plate rests on and screws into
+    translate([mount_x, 0, -3]) difference() {
+        translate([-mount[0] / 2 - 3, -mount[1] / 2 - 3, 0]) cube([mount[0] + 6, mount[1] + 6, 3.01]);
+        cube([mount_ledge[0], mount_ledge[1], 10], center = true);
+        for (sx = [-1, 1], sy = [-1, 1]) translate([sx * mount_holes[0] / 2, sy * mount_holes[1] / 2, -1])
+            cylinder(d = 2.2, h = 10);
+    }
+}
+
+module neck_mount() {  // holds an SG90 / MG90S pan servo; drops into the lid flush with its top
+    difference() {
+        translate([-mount[0] / 2, -mount[1] / 2, 0]) cube([mount[0], mount[1], lid_t]);
+        cube([sg90[0] + 2 * fit, sg90[1] + 2 * fit, 20], center = true);
+        for (sx = [-1, 1]) translate([sx * sg90_tab_hole / 2, 0, -1]) cylinder(d = 1.8, h = 10);
+        for (sx = [-1, 1], sy = [-1, 1]) translate([sx * mount_holes[0] / 2, sy * mount_holes[1] / 2, -1]) {
+            cylinder(d = 2.8, h = 10);
+            translate([0, 0, lid_t - 1.4 + 1]) cylinder(d1 = 2.8, d2 = 5.2, h = 1.41);
+        }
     }
 }
 
@@ -386,25 +417,43 @@ module neck() {  // sits on the pan servo horn; holds the tilt servo at the top
     }
 }
 
-module head() {  // yoke + plate that carries the eyes; printed plate-down
+// Modular head interface: the yoke (on the tilt servo) ends in a pad, and the
+// eye plate bolts onto it with 4 x M3 in this pattern. A head-roll module can
+// later sit between the two with the same holes on both faces.
+head_holes = [[-2, -12], [-2, 12], [12, -12], [12, 12]];
+
+module head_yoke() {  // printed pad-down
     arm_t = 3;
     inner_pos = blk_y1 + 4 + 0.5;          // past the servo shaft and horn
     inner_neg = blk_y1 - blk[1] - 5 - 0.5; // past the pivot boss
     difference() {
         union() {
-            translate([eye_x - 15, -eye_y - eye_r + 6, plate_z]) cube([30, 2 * (eye_y + eye_r - 6), 3]);
+            translate([-7, inner_neg - arm_t, plate_z - 4]) cube([24, inner_pos + arm_t - inner_neg + arm_t, 4]);
             for (y = [inner_pos, inner_neg - arm_t]) hull() {
-                translate([-6, y, plate_z]) cube([12, arm_t, 1]);
+                translate([-6, y, plate_z - 4]) cube([12, arm_t, 4]);
                 translate([0, y, 0]) rotate([-90, 0, 0]) cylinder(r = 7, h = arm_t);
             }
         }
         // horn screws (servo side) and pivot screw (other side)
         for (dz = [0, 7]) translate([0, inner_pos - 1, dz]) rotate([-90, 0, 0]) cylinder(d = 1.5, h = 10);
         translate([0, inner_neg - arm_t - 1, 0]) rotate([-90, 0, 0]) cylinder(d = 3.4, h = 10);
+        for (h = head_holes) translate([h[0], h[1], plate_z - 10]) cylinder(d = 3.4, h = 20);
+    }
+}
+
+module eye_plate() {  // carries both eyes; printed flat
+    difference() {
+        translate([eye_x - 15, -eye_y - eye_r + 6, plate_z]) cube([30, 2 * (eye_y + eye_r - 6), 3]);
+        for (h = head_holes) translate([h[0], h[1], plate_z - 1]) {
+            cylinder(d = 3.4, h = 10);
+            translate([0, 0, 2.2]) cylinder(d = 6.4, h = 5, $fn = 6);  // M3 nut trap on top
+        }
         // eye screws
         for (sy = [-1, 1], dx = [-7, 7]) translate([eye_x + dx, sy * eye_y, plate_z - 1]) cylinder(d = 2.4, h = 10);
     }
 }
+
+module head() { head_yoke(); eye_plate(); }
 
 module eye(camera) {  // printed standing on its back end; camera eye = left
     t = 2;
@@ -545,6 +594,7 @@ module assembly() {
     color("gray") translate([-body_l / 2, 0, 0]) mirror([1, 0, 0]) scoop();
     translate([pan_x, 0, body_h]) {
         translate([0, 0, sg90[2] - sg90_tab_z]) sg90_ghost();  // tabs resting on the lid
+        color("gray") translate([mount_x - pan_x, 0, -lid_t]) neck_mount();
         color("gray") translate([0, 0, neck_base_z]) neck();
         translate([0, 0, neck_base_z + pivot_h]) {
             translate([0, blk_y1, 0]) rotate([-90, 0, 0]) rotate([0, 0, 0]) sg90_ghost();
@@ -569,7 +619,9 @@ if (part == "lip_rear") scoop();
 if (part == "hand_left") rotate([90, 0, 0]) hand();
 if (part == "hand_right") rotate([-90, 0, 0]) mirror([0, 1, 0]) hand();
 if (part == "neck") neck();
-if (part == "head") rotate([180, 0, 0]) head();
+if (part == "head_yoke") rotate([180, 0, 0]) head_yoke();
+if (part == "eye_plate") eye_plate();
+if (part == "neck_mount") neck_mount();
 if (part == "eye_camera") rotate([0, 90, 0]) eye(true);  // front face down: no supports
 if (part == "eye_led") rotate([0, 90, 0]) eye(false);
 if (part == "eye_cap") eye_cap();

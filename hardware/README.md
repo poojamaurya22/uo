@@ -76,6 +76,8 @@ authorised resellers: a Pi 5 4 GB under ₹5,000 is probably fake or grey-market
 | 4 | M3 × 40 bolt + nyloc nut + 2 washers | Idler and road-wheel axles |
 | 14 | M3 × 10 screw (self-tapping into plastic is fine) | Lid (4), hands (4), scoop and lip (4), dock wall (2) |
 | 1 | M3 × 8 screw | Head tilt pivot |
+| 4 | M3 × 10 screw + M3 nut | Eye plate onto the head yoke |
+| 4 | M2.5 × 8 screw (self-tapping) | Neck mount plate into the lid |
 | ~16 | M2 × 5 self-tapping screws | Camera (4), motor straps (4), eyes onto the head (4), spares |
 | 4 | M2.5 × 6 screws | Pi 5 |
 | 2 | M2 × 3 grub screw (optional) | Locks the drive sprockets on the motor shafts |
@@ -102,7 +104,9 @@ settings: 0.2 mm layers, 3 walls, 20% infill.
 |---|---|---|---|
 | `body.stl` | 1 | PETG/PLA | Biggest part (120 × 110 × 97 mm), ~8 h |
 | `lid.stl` | 1 | PETG/PLA | Prints top-down |
-| `head.stl` | 1 | PETG/PLA | Plate down |
+| `neck_mount.stl` | 1 | PETG/PLA | Holds the pan servo in the lid |
+| `head_yoke.stl` | 1 | PETG/PLA | Pad down |
+| `eye_plate.stl` | 1 | PETG/PLA | |
 | `neck.stl` | 1 | PETG/PLA | 4 walls: it carries the head |
 | `eye_camera.stl`, `eye_led.stl` | 1 each | PLA | Front face down. Paint or marker the lens recess black |
 | `eye_cap.stl` | 2 | PLA | |
@@ -188,14 +192,15 @@ A full wiring diagram comes with the firmware (next step).
 ### 5. Neck and head
 
 1. Centre both servos before fitting them (power on, send 90°).
-2. **Pan servo**: drop it into the lid's rectangular hole with the shaft end towards the back of
-   the robot, and screw its tabs down.
+2. **Pan servo**: drop it into `neck_mount` with the shaft end towards the back of the
+   robot and screw its tabs down. Drop the plate into the lid's square opening
+   (flush with the top) and screw it to the ledge underneath (4 × M2.5).
 3. Screw a round servo horn to the bottom of `neck`, then push it onto the pan servo.
 4. **Tilt servo**: drop it into the top of the neck, shaft out to the left side, and screw
    the tabs (2 × M2, from the side).
-5. Screw a single-arm horn to the `head`'s arm on the servo side, push it onto
+5. Screw a single-arm horn to the `head_yoke`'s arm on the servo side, push it onto
    the tilt servo, and put the M3 × 8 pivot screw through the other arm into
-   the neck.
+   the neck. Bolt the `eye_plate` onto the yoke's pad (4 × M3, nuts in the traps on top).
 6. **Camera** onto the 4 standoffs inside `eye_camera` (lens through the front
    hole), **LED** into `eye_led`. Screw both eyes onto the head plate (2 × M2
    each from below), then fit the `eye_cap`s.
@@ -230,6 +235,21 @@ body, check your module against `screen_board` at the top of `walle.scad`
 Wall-E drives in forwards between the guide arms until the magnets snap the
 contacts together. Until the "go home" behaviour is written, you can push it
 onto the dock by hand to charge, or plug the adapter straight into its back.
+
+## Modular upgrades
+
+Wall-E is designed so later upgrades swap or add parts without reprinting the body:
+
+| Upgrade | Interface already in place | What changes later |
+|---|---|---|
+| **Chest screen** | Window, recess and rails on the chest (`chest_cover` for now) | Add a 1.54" ST7789 module and `chest_bezel` |
+| **Extending neck** | `neck_mount` plate in a standard opening; the ledge passes servos up to MG996R size; wide cable slot | New neck parts, a new `neck_mount`, a 50 cm camera cable, possibly a stronger pan servo |
+| **Sideways head tilt** (curious look) | `head_yoke` and `eye_plate` bolt together with a 4 × M3 pattern | A roll module with a small servo, bolted between them |
+| **Arms** | 2 × M3 + a wire hole on each side of the body | Arm parts and servos |
+| **AI accelerator** | Pi 5 has its PCIe connector free | Raspberry Pi AI HAT+ |
+
+On the electronics side, the wiring diagram will keep the Pi 5's SPI pins (screen),
+two servo channels (neck lift, head roll) and a few spare GPIOs (limit switch, arms) free.
 
 ## Changing the design
 
