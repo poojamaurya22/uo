@@ -27,7 +27,7 @@ class RobotSpec:
     motor_kv: float = 0.05
     motor_torque: float = 0.12  # N*m, N20 1:100 near stall
     # Neck (pan + tilt servos) and binocular head; camera in the left eye.
-    neck_height: float = 0.06
+    neck_height: float = 0.0668  # tall enough for the tilt servo block (see hardware/walle.scad)
     eye_radius: float = 0.022
     eye_half_length: float = 0.022
     head_mass: float = 0.1

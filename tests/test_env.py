@@ -83,3 +83,16 @@ def test_tilt_estimate_ignores_driving_jolts():
     for i in range(60):  # full-speed starts, stops and reversals on flat floor
         env.step(np.array([1.0, 1.0]) if (i // 10) % 2 == 0 else np.array([-1.0, -1.0]))
         assert env.last_tilt < 0.25
+
+
+def test_hardware_params_match_robot_spec():
+    """The printable parts must be generated from the current RobotSpec."""
+    import importlib.util
+    import os
+
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    spec = importlib.util.spec_from_file_location("gen", os.path.join(root, "scripts", "gen_scad_params.py"))
+    gen = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(gen)
+    with open(os.path.join(root, "hardware", "params.scad")) as f:
+        assert f.read() == gen.render(), "run: python scripts/build_hardware.py"

@@ -18,6 +18,15 @@ Right: what Wall-E's own eye sees as its neck tracks you
 
 ![Left: overhead view of the room. Right: what the robot's camera sees.](docs/preview.png)
 
+## Building the real one
+
+**[`hardware/`](hardware/README.md)** has everything to build it: a shopping list (~$200–250),
+ready-to-print STL files for every part, and step-by-step assembly. The parts are
+generated from the same `RobotSpec` as the simulation, so the printed robot
+matches the one the brain was trained and tested on.
+
+<img src="hardware/preview/assembly_front.png" alt="Printable Wall-E design" width="420">
+
 ## What's simulated
 
 **The robot** is a Wall-E: a box body (12 × 11 × 10 cm), two tracks, and a
@@ -180,6 +189,7 @@ falls / flips:          stairs
 
 ```
 petsim/robot.py      robot + house model (MJCF generated from RobotSpec)
+hardware/            printable parts (OpenSCAD + STLs), shopping list, assembly guide
 petsim/env.py        Gymnasium environment: sensors, person, reward
 petsim/baseline.py   hand-written follow controller (yardstick + safe fallback)
 petsim/safety.py     cliff and tilt reflexes that override any controller
@@ -189,6 +199,7 @@ scripts/train.py     PPO training
 scripts/export_policy.py  trained PPO .zip -> NumPy .npz brain
 scripts/evaluate.py  metrics, videos, robot-camera photos
 scripts/watch.py     live 3D viewer
+scripts/build_hardware.py  regenerate the printable parts from RobotSpec
 tests/               physics and sensor sanity checks
 ```
 
@@ -207,8 +218,9 @@ tests/               physics and sensor sanity checks
    charging dock, explore and map rooms, react to being picked up (IMU).
 4. **Voice and memory**: a speech + Claude layer that turns "take a picture" or
    "follow me" into these behaviours. It runs on a PC, separate from the policy.
-5. **Real build**: same observation vector, read from real sensors on a
-   Pi Zero 2 W + microcontroller, running the exported policy.
+5. **Real build**: printable design and shopping list done ([`hardware/`](hardware/README.md), v0.1,
+   not yet printed). Next: wiring, Pico firmware with the safety reflexes, and Pi software that
+   builds the same observation vector from real sensors and runs `models/walle_follow.npz`.
 
 Known simplifications: one room, walls and furniture are simple shapes, and the
 person can pass through furniture (but not through the robot).
