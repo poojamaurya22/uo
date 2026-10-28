@@ -22,8 +22,10 @@ def load_controller(name):
     if name == "random":
         rng = np.random.default_rng(0)
         return lambda obs: rng.uniform(-1, 1, 2)
+    import torch
     from stable_baselines3 import PPO
 
+    torch.set_num_threads(1)  # tiny network: threads only add overhead
     model = PPO.load(name, device="cpu")
     return lambda obs: model.predict(obs, deterministic=True)[0]
 
