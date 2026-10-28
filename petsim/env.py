@@ -238,6 +238,7 @@ class PetFollowEnv(gym.Env):
         self.data.ctrl[self.head_tilt_act] = 0.2
         self.detection = None
         self.up_estimate = np.array([0.0, 0.0, 1.0])
+        self._chase_yaw = None
 
         self.walker = PersonWalker(rng, self._blocked, lambda: self.robot_pose()[0][:2])
         self.walker.reset(person_xy)
@@ -430,6 +431,19 @@ class PetFollowEnv(gym.Env):
 
     def render(self, width=640, height=480):
         return self._render_camera("overhead", width, height)
+
+    def render_chase(self, width=640, height=480):
+        """A camera following behind and above the robot, smoothed so it doesn't jitter."""
+        pos, yaw = self.robot_pose()
+        if self._chase_yaw is None:
+            self._chase_yaw = yaw
+        self._chase_yaw += 0.1 * _wrap(yaw - self._chase_yaw)
+        cam = mujoco.MjvCamera()
+        cam.lookat[:] = [pos[0], pos[1], 0.25]
+        cam.distance = 1.9
+        cam.azimuth = math.degrees(self._chase_yaw)
+        cam.elevation = -22
+        return self._render_camera(cam, width, height)
 
     def take_photo(self, width=1280, height=720):
         """What the robot's own camera sees: the 'take a picture' command."""

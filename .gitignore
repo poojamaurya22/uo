@@ -1,4 +1,4 @@
 runs/
 __pycache__/
 *.mp4
-
+!docs/*.mp4

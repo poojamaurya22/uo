@@ -74,6 +74,7 @@ def test_safety_reflex_overrides_controller():
     assert safety_filter(np.array([gone, floor, floor, floor, floor]), 0.0, go).max() < 0  # backs off
     assert safety_filter(np.array([floor, floor, floor, gone, floor]), 0.0, -go).min() > 0  # drives off
     assert np.allclose(safety_filter(np.full(5, floor), 0.4, go), 0)  # tilted: stop
+    assert safety_filter(np.array([floor, floor, floor, gone, gone]), 0.4, go).min() > 0  # cliff beats tilt
 
 
 def test_tilt_estimate_ignores_driving_jolts():

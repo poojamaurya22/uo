@@ -10,6 +10,12 @@ Everything is open source: [MuJoCo](https://mujoco.org) (physics),
 
 <img src="docs/walle.png" alt="The simulated Wall-E robot" width="420">
 
+**The trained brain following a person.** Left: a camera behind Wall-E.
+Right: what Wall-E's own eye sees as its neck tracks you
+([full video](docs/walle_follow.mp4)).
+
+![Wall-E following a person](docs/walle_follow.gif)
+
 ![Left: overhead view of the room. Right: what the robot's camera sees.](docs/preview.png)
 
 ## What's simulated
@@ -113,17 +119,17 @@ Next time, just `cd uo` and run the activate command from step 2.
 Windows / Linux:
 
 ```bash
-python scripts/watch.py --controller baseline
+python scripts/watch.py --controller models/walle_follow.npz
 ```
 
 Mac (MuJoCo's viewer needs its own launcher, `mjpython`, installed with it):
 
 ```bash
-mjpython scripts/watch.py --controller baseline
+mjpython scripts/watch.py --controller models/walle_follow.npz
 ```
 
-A 3D window opens with the robot following the person. To watch the trained
-brain instead, use `--controller runs/ppo/best_model.zip` after training.
+A 3D window opens with Wall-E following the person, driven by the trained
+brain. Use `--controller baseline` to watch the hand-written controller instead.
 
 | Control | Action |
 |---|---|
@@ -138,8 +144,9 @@ brain instead, use `--controller runs/ppo/best_model.zip` after training.
 ```bash
 python -m pytest -q tests                          # sanity checks (~10 s)
 python scripts/evaluate.py --controller baseline   # score the hand-written controller
-python scripts/train.py --steps 2000000            # train a brain (~40 min on 4 cores)
-python scripts/evaluate.py --controller runs/ppo/best_model.zip --video follow.mp4 --photo photo.png
+python scripts/train.py --steps 2000000 --out runs/ppo_walle   # train a brain (~55 min on 4 cores)
+python scripts/export_policy.py runs/ppo_walle/final.zip models/my_brain.npz
+python scripts/evaluate.py --controller models/my_brain.npz --video follow.mp4 --photo photo.png
 ```
 
 On a server with no screen, set `MUJOCO_GL=egl` (NVIDIA) or
@@ -161,7 +168,11 @@ falls / flips:          stairs
 petsim/robot.py      robot + house model (MJCF generated from RobotSpec)
 petsim/env.py        Gymnasium environment: sensors, person, reward
 petsim/baseline.py   hand-written follow controller (yardstick + safe fallback)
+petsim/safety.py     cliff and tilt reflexes that override any controller
+petsim/policy.py     runs a trained brain with NumPy only (no PyTorch needed)
+models/              trained brains (walle_follow.npz: 330 KB)
 scripts/train.py     PPO training
+scripts/export_policy.py  trained PPO .zip -> NumPy .npz brain
 scripts/evaluate.py  metrics, videos, robot-camera photos
 scripts/watch.py     live 3D viewer
 tests/               physics and sensor sanity checks

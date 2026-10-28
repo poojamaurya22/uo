@@ -14,8 +14,7 @@ TILT_TRIGGER = 0.25  # rad (~14 deg): the tracks are climbing something
 def safety_filter(cliff, tilt, action):
     """cliff: the 5 normalized cliff readings (3 front, 2 rear); tilt: body tilt
     from the IMU's gravity reading, in rad; action: track speeds."""
-    if tilt > TILT_TRIGGER:
-        return np.zeros(2)  # stop and let it settle rather than climb on and tip over
+    # Cliffs come first: when tipping over an edge, keep driving away from it.
     front = cliff[:3].max() > CLIFF_TRIGGER
     rear = cliff[3:].max() > CLIFF_TRIGGER
     if front and rear:
@@ -24,4 +23,6 @@ def safety_filter(cliff, tilt, action):
         return np.array([-0.5, -0.5])  # back straight away from the edge
     if rear:
         return np.array([0.5, 0.5])
+    if tilt > TILT_TRIGGER:
+        return np.zeros(2)  # stop and let it settle rather than climb on and tip over
     return action

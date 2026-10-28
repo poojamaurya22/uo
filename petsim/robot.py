@@ -143,6 +143,7 @@ def build_xml(spec: RobotSpec = RobotSpec()) -> str:
     fovy = spec.camera_vfov_deg
     side_yaw = np.radians(spec.side_tof_yaw_deg)
     sx, sy = np.cos(side_yaw), np.sin(side_yaw)
+    cliff_x = bx + 0.03
 
     return f"""
 <mujoco model="walle">
@@ -172,7 +173,7 @@ def build_xml(spec: RobotSpec = RobotSpec()) -> str:
       <geom name="body" type="box" size="{bx} {by} {bz}" mass="{spec.body_mass}"/>
       <geom name="chest_panel" type="box" size="0.002 {by * 0.7} {bz * 0.45}" pos="{bx} 0 {bz * 0.3}"
             rgba="{ROBOT_GREY}" contype="0" conaffinity="0" mass="0"/>
-      <geom name="scoop" type="box" size="0.008 {by * 0.9} 0.008" pos="{bx + 0.006} 0 {-bz + 0.004}"
+      <geom name="scoop" type="box" size="0.018 {by * 0.9} 0.008" pos="{bx + 0.016} 0 {-bz + 0.004}"
             rgba="{ROBOT_GREY}" mass="0.01"/>
       <geom name="hand_l" type="box" size="0.012 0.008 0.01" pos="{bx - 0.008} {by + 0.004} {-0.01}"
             rgba="{ROBOT_GREY}" mass="0.005"/>
@@ -182,12 +183,14 @@ def build_xml(spec: RobotSpec = RobotSpec()) -> str:
       <site name="tof" pos="{bx + 0.002} 0 {-bz * 0.35}" size="0.005" rgba="1 .2 .2 1"/>
       <site name="side_l" pos="{bx + 0.004} {by + 0.004} -0.01" zaxis="{sx} {sy} 0" size="0.004" rgba="1 .2 .2 1"/>
       <site name="side_r" pos="{bx + 0.004} {-by - 0.004} -0.01" zaxis="{sx} {-sy} 0" size="0.004" rgba="1 .2 .2 1"/>
-      <site name="cliff_l" pos="{bx + 0.01} {by * 0.75} {-bz}" size="0.003"/>
-      <site name="cliff_c" pos="{bx + 0.01} 0 {-bz}" size="0.003"/>
-      <site name="cliff_r" pos="{bx + 0.01} {-by * 0.75} {-bz}" size="0.003"/>
-      <site name="cliff_rear_l" pos="{-bx - 0.006} {by * 0.75} {-bz}" size="0.003"/>
-      <site name="cliff_rear_r" pos="{-bx - 0.006} {-by * 0.75} {-bz}" size="0.003"/>
-      <geom name="rear_lip" type="box" size="0.006 {by * 0.9} 0.008" pos="{-bx - 0.004} 0 {-bz + 0.004}"
+      <!-- Cliff sensors sit ~2.5 cm beyond the track ends: further than the robot
+           travels before the reflex can stop it at full speed. -->
+      <site name="cliff_l" pos="{cliff_x} {by * 0.75} {-bz}" size="0.003"/>
+      <site name="cliff_c" pos="{cliff_x} 0 {-bz}" size="0.003"/>
+      <site name="cliff_r" pos="{cliff_x} {-by * 0.75} {-bz}" size="0.003"/>
+      <site name="cliff_rear_l" pos="{-cliff_x} {by * 0.75} {-bz}" size="0.003"/>
+      <site name="cliff_rear_r" pos="{-cliff_x} {-by * 0.75} {-bz}" size="0.003"/>
+      <geom name="rear_lip" type="box" size="0.018 {by * 0.9} 0.008" pos="{-bx - 0.016} 0 {-bz + 0.004}"
             rgba="{ROBOT_GREY}" mass="0.01"/>
       {_track(spec, "left", 1)}
       {_track(spec, "right", -1)}

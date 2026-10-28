@@ -1,7 +1,7 @@
 """Watch a controller drive the robot live in the MuJoCo 3D viewer (needs a display).
 
     python scripts/watch.py --controller baseline
-    python scripts/watch.py --controller runs/ppo/best_model.zip
+    python scripts/watch.py --controller models/walle_follow.npz
 
 On macOS run it with `mjpython` instead of `python`.
 Viewer tips: double-click a body to select it, Ctrl+right-drag to push it,

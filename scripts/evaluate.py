@@ -1,7 +1,7 @@
 """Score a controller on the follow task, optionally saving videos.
 
     python scripts/evaluate.py --controller baseline
-    python scripts/evaluate.py --controller runs/ppo/final.zip --video out.mp4
+    python scripts/evaluate.py --controller models/walle_follow.npz --video out.mp4
 """
 
 import argparse
@@ -19,6 +19,10 @@ from petsim.env import CONTROL_DT, PetFollowEnv  # noqa: E402
 def load_controller(name):
     if name == "baseline":
         return follow_controller
+    if name.endswith(".npz"):
+        from petsim.policy import NumpyPolicy
+
+        return NumpyPolicy(name)
     if name == "random":
         rng = np.random.default_rng(0)
         return lambda obs: rng.uniform(-1, 1, 2)
@@ -47,8 +51,8 @@ def run(controller, episodes, seed, video=None, photo=None, safety=True):
             stats["collisions"] += info["collided"]
             stats["too_close"] += info["distance"] < 0.45
             stats["falls"] += info["fell"] or info["flipped"]
-            if video and ep == 0:
-                frames.append(env.render())
+            if video and ep == 0:  # chase view | the robot's own eye
+                frames.append(np.concatenate([env.render_chase(), env.take_photo(640, 480)], axis=1))
         totals.append(total)
         if photo and ep == 0:
             import imageio.v3 as iio
@@ -75,7 +79,7 @@ def run(controller, episodes, seed, video=None, photo=None, safety=True):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--controller", default="baseline", help="baseline, random, or a path to a PPO .zip")
+    parser.add_argument("--controller", default="baseline", help="baseline, random, an exported .npz policy, or a PPO .zip")
     parser.add_argument("--episodes", type=int, default=20)
     parser.add_argument("--seed", type=int, default=1000)
     parser.add_argument("--video", help="save the first episode as an mp4")
