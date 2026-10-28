@@ -31,7 +31,7 @@ def test_cliff_sensors_see_the_stairwell():
     cliff = 0.0
     for _ in range(30):
         obs, *_ = env.step(np.array([0.3, 0.3]))
-        cliff = max(cliff, obs[OBS["cliff"]][:3].max())
+        cliff = max(cliff, obs[OBS["cliff"]][:2].max())
     assert obs.shape == (OBS_DIM,)
     assert cliff > 0.5
 
@@ -46,7 +46,7 @@ def test_rear_cliff_sensors_see_the_stairwell():
     rear = 0.0
     for _ in range(30):
         obs, *_ = env.step(np.array([-0.3, -0.3]))
-        rear = max(rear, obs[OBS["cliff"]][3:].max())
+        rear = max(rear, obs[OBS["cliff"]][2:].max())
     assert rear > 0.5
 
 
@@ -70,11 +70,11 @@ def test_baseline_beats_random():
 def test_safety_reflex_overrides_controller():
     floor, gone = 0.05, 1.0
     go = np.array([1.0, 1.0])
-    assert np.allclose(safety_filter(np.full(5, floor), 0.0, go), go)
-    assert safety_filter(np.array([gone, floor, floor, floor, floor]), 0.0, go).max() < 0  # backs off
-    assert safety_filter(np.array([floor, floor, floor, gone, floor]), 0.0, -go).min() > 0  # drives off
-    assert np.allclose(safety_filter(np.full(5, floor), 0.4, go), 0)  # tilted: stop
-    assert safety_filter(np.array([floor, floor, floor, gone, gone]), 0.4, go).min() > 0  # cliff beats tilt
+    assert np.allclose(safety_filter(np.full(4, floor), 0.0, go), go)
+    assert safety_filter(np.array([gone, floor, floor, floor]), 0.0, go).max() < 0  # backs off
+    assert safety_filter(np.array([floor, floor, gone, floor]), 0.0, -go).min() > 0  # drives off
+    assert np.allclose(safety_filter(np.full(4, floor), 0.4, go), 0)  # tilted: stop
+    assert safety_filter(np.array([floor, floor, gone, gone]), 0.4, go).min() > 0  # cliff beats tilt
 
 
 def test_tilt_estimate_ignores_driving_jolts():

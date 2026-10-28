@@ -186,7 +186,6 @@ def build_xml(spec: RobotSpec = RobotSpec()) -> str:
       <!-- Cliff sensors sit ~2.5 cm beyond the track ends: further than the robot
            travels before the reflex can stop it at full speed. -->
       <site name="cliff_l" pos="{cliff_x} {by * 0.75} {-bz}" size="0.003"/>
-      <site name="cliff_c" pos="{cliff_x} 0 {-bz}" size="0.003"/>
       <site name="cliff_r" pos="{cliff_x} {-by * 0.75} {-bz}" size="0.003"/>
       <site name="cliff_rear_l" pos="{-cliff_x} {by * 0.75} {-bz}" size="0.003"/>
       <site name="cliff_rear_r" pos="{-cliff_x} {-by * 0.75} {-bz}" size="0.003"/>

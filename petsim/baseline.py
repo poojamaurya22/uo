@@ -22,11 +22,11 @@ def follow_controller(obs, follow_distance=1.0):
     dist *= PERSON_RANGE
 
     # Cliff: drive away from it, nothing else matters.
-    front, rear = cliff[:3], cliff[3:]
+    front, rear = cliff[:2], cliff[2:]
     if rear.max() > 0.5:
         return np.array([0.6, 0.6])
     if front.max() > 0.5:
-        return np.array([-0.6, -0.2]) if front[0] > front[2] else np.array([-0.2, -0.6])
+        return np.array([-0.6, -0.2]) if front[0] > front[1] else np.array([-0.2, -0.6])
 
     if lost < 1.0:  # seen within the last few seconds
         turn = np.clip(1.5 * bearing, -1, 1)

@@ -26,13 +26,13 @@ Adafruit, SparkFun, Pololu or The Pi Hut. Prices are rough.
 | 1 | **Raspberry Pi Pico** | Real-time microcontroller: motors, sensors, **safety reflexes** | 4 |
 | 1 | **VL53L5CX** 8×8 ToF breakout, 25.4 mm square (SparkFun Qwiic) | Chest depth sensor | 25 |
 | 2 | **VL53L1X** ToF breakout, ~13 × 18 mm (Pololu) | Side sensors in the hands | 24 |
-| 5 | **VL6180X** ToF breakout, ~13 × 18 mm (Pololu) | Cliff sensors: 3 front, 2 rear | 40 |
+| 4 | **VL6180X** ToF breakout, ~13 × 18 mm (Pololu) | Cliff sensors: 2 front corners, 2 rear corners | 32 |
 | 1 | **BMI270** or **MPU-6050** IMU breakout | Tilt / bump / picked-up detection | 5 |
 | 2 | **INMP441** I2S microphone | Ears (under the lid) | 6 |
 | 1 | **MAX98357A** I2S amplifier + **28 mm 8 Ω speaker** | Voice | 9 |
 | 1 | 5 mm LED (any colour) + 220 Ω resistor | Right eye status light | 1 |
 
-> Cheaper cliff sensors: 5 × **TCRT5000** IR modules (~$5) work too; the
+> Cheaper cliff sensors: 4 × **TCRT5000** IR modules (~$5) work too; the
 > pockets fit modules up to ~13 × 18 mm.
 
 ### Movement
@@ -127,8 +127,8 @@ If something is too tight or loose, change `fit` at the top of `walle.scad`
 
 ### 3. Sensors
 
-1. **Cliff sensors**: one board in each pocket of `scoop_front` (3) and `lip_rear`
-   (2), sensor facing down through the hole. Run the wires along the channels.
+1. **Cliff sensors**: one board in each of the 2 pockets of `scoop_front` and of
+   `lip_rear` (the two parts are identical), sensor facing down through the hole. Run the wires along the channels.
    Screw the scoop and lip to the bottom of the front and back walls (2 × M3
    each), wires through the middle hole.
 2. **Chest ToF**: slide the VL53L5CX board down the two rails behind the chest window,

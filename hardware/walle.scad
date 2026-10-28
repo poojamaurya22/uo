@@ -266,7 +266,7 @@ module spacer() {  // between the body wall and an idler / road wheel
 }
 
 // --------------------------------------------------------- sensor mounts
-module scoop(n_sensors) {  // front scoop (3 cliff sensors) or rear lip (2), printed flat
+module scoop() {  // front scoop or rear lip, each with 2 cliff sensors near the corners; printed flat
     len = cliff_reach + cliff_board[0] / 2 + 4;
     w = body_w * 0.9;
     difference() {
@@ -274,8 +274,7 @@ module scoop(n_sensors) {  // front scoop (3 cliff sensors) or rear lip (2), pri
             translate([0, -w / 2, 0]) cube([len, w, 8]);
             translate([-0.01, -w / 2, 0]) cube([3, w, 16]);  // flange against the body wall
         }
-        ys = n_sensors == 3 ? [-0.75, 0, 0.75] : [-0.75, 0.75];
-        for (fy = ys) translate([cliff_reach, fy * body_w / 2, 2]) {
+        for (fy = [-0.75, 0.75]) translate([cliff_reach, fy * body_w / 2, 2]) {
             board_pocket(cliff_board, 10, 6);
             // wire channel back to the body
             translate([-cliff_reach, -2, 0]) cube([cliff_reach, 4, 10]);
@@ -423,8 +422,8 @@ module assembly() {
         color("gray") translate([body_l / 2 - 14, side * body_w / 2, side_tof_z])
             mirror([0, side < 0 ? 1 : 0, 0]) hand();
     }
-    color("gray") translate([body_l / 2, 0, 0]) scoop(3);
-    color("gray") translate([-body_l / 2, 0, 0]) mirror([1, 0, 0]) scoop(2);
+    color("gray") translate([body_l / 2, 0, 0]) scoop();
+    color("gray") translate([-body_l / 2, 0, 0]) mirror([1, 0, 0]) scoop();
     translate([pan_x, 0, body_h]) {
         translate([0, 0, sg90[2] - sg90_tab_z]) sg90_ghost();  // tabs resting on the lid
         color("gray") translate([0, 0, neck_base_z]) neck();
@@ -446,8 +445,8 @@ if (part == "sprocket_idler") sprocket(false);
 if (part == "road_wheel") road_wheel();
 if (part == "spacer") spacer();
 if (part == "motor_strap") motor_strap();
-if (part == "scoop_front") scoop(3);
-if (part == "lip_rear") scoop(2);
+if (part == "scoop_front") scoop();
+if (part == "lip_rear") scoop();
 if (part == "hand_left") rotate([90, 0, 0]) hand();
 if (part == "hand_right") rotate([-90, 0, 0]) mirror([0, 1, 0]) hand();
 if (part == "neck") neck();

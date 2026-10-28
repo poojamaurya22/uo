@@ -14,6 +14,10 @@ class NumpyPolicy:
 
     def __call__(self, obs):
         x = np.asarray(obs, dtype=np.float32)
+        expected = self.layers[0][0].shape[1]
+        if x.shape != (expected,):
+            raise ValueError(f"this brain expects {expected} sensor values but got {x.shape[0]}: "
+                             "it was trained for a different robot layout")
         for w, b in self.layers[:-1]:
             x = np.tanh(w @ x + b)
         w, b = self.layers[-1]

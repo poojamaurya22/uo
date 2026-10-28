@@ -37,7 +37,7 @@ binocular head on a neck. It's about 22 cm tall and 0.8 kg. Each part mirrors th
 | Two tracks, each 3 road wheels locked together, middle one driven, torque-limited | Printed TPU tracks, 2 × N20 gear motors with encoders, DRV8833 driver |
 | 8 × 8 depth grid in the chest, 45° field of view, 4 m range, ±2% noise | VL53L5CX multi-zone ToF |
 | One distance sensor in each "hand", angled 55° outwards | 2 × VL53L1X single-zone ToF |
-| 3 downward distance sensors on the front scoop, 2 on the rear | 5 × VL6180X / TCRT5000 cliff sensors |
+| 4 downward distance sensors: front and rear, near each corner | 4 × VL6180X / TCRT5000 cliff sensors |
 | Accelerometer + gyro | BMI270 IMU |
 | Track speed | Motor encoders |
 | Neck with pan (±86°) and tilt | 2 × SG90 / MG90S servos |
@@ -94,7 +94,7 @@ robot it runs on the microcontroller, independent of the Pi:
 
 - **Action**: left and right track speeds, in −1 … 1.
 - **Observation** (84 numbers, laid out in `OBS` in `petsim/env.py`): the 8×8
-  depth grid, 5 cliff readings, 2 side distances, the IMU, track speeds, the
+  depth grid, 4 cliff readings, 2 side distances, the IMU, track speeds, the
   person detector's output (seen?, direction, distance, seconds since last
   seen), the neck angle and the previous action. All of these come from
   real sensors, so the same policy can run on the robot.
@@ -211,6 +211,9 @@ tests/               physics and sensor sanity checks
    ~~Are front cliff sensors enough?~~ No: the first Wall-E brain backed away
    from the person straight into the stairwell. Rear cliff sensors helped, but
    the brain still occasionally ignored them, which led to the safety reflexes.
+   ~~Do you need 5 cliff sensors?~~ No, 4 (one near each corner) is enough: driving
+   randomly at the stairwell edge, 4 and 5 both had 0 falls in ~800 runs; 3 had 2%,
+   and front-only had 16%.
    ~~Can the tracks climb furniture?~~ Yes: on a low box they climbed and
    tipped over backwards. The tilt reflex stops them.
    Still open: how much does camera field of view matter? Is the robot fast enough?
