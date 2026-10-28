@@ -11,69 +11,86 @@ height that the trained brain was tested with.
 > [fit tests](#1-print-the-fit-tests-first) first, and expect to tweak a few
 > sizes. That's normal for a v0.1.
 
-## What you need to buy
+## What you need to buy (India)
 
-About **$200–250** in total. Search the part names on Amazon, AliExpress,
-Adafruit, SparkFun, Pololu or The Pi Hut. Prices are rough.
+About **₹21,000–23,000** for the robot and its charging dock, plus filament and
+tools if you don't have them. Prices were checked on Indian stores in October 2026;
+they and stock change often, so treat them as a guide.
 
-### Brains and senses
+**Where to order:** most of it from **Robocraze**, motors and servos from **Robu.in**,
+the camera from **ElectronicsComp** if Robocraze is out, and screws, wires,
+adapter and filament from **Amazon.in**. Buy the Pi and camera only from
+authorised resellers: a Pi 5 4 GB under ₹5,000 is probably fake or grey-market.
 
-| Qty | Part | What it does | ~$ |
-|---|---|---|---|
-| 1 | **Raspberry Pi Zero 2 W** + 32 GB microSD | Main computer: camera, Wi-Fi, talking to the PC | 25 |
-| 1 | **Raspberry Pi Camera Module 3 Wide** | The left eye | 35 |
-| 1 | Pi **Zero** camera cable, **30 cm** | The Zero needs the narrow-end cable; 30 cm leaves slack for the neck | 3 |
-| 1 | **Raspberry Pi Pico** | Real-time microcontroller: motors, sensors, **safety reflexes** | 4 |
-| 1 | **VL53L5CX** 8×8 ToF breakout, 25.4 mm square (SparkFun Qwiic) | Chest depth sensor | 25 |
-| 2 | **VL53L1X** ToF breakout, ~13 × 18 mm (Pololu) | Side sensors in the hands | 24 |
-| 4 | **VL6180X** ToF breakout, ~13 × 18 mm (Pololu) | Cliff sensors: 2 front corners, 2 rear corners | 32 |
-| 1 | **BMI270** or **MPU-6050** IMU breakout | Tilt / bump / picked-up detection | 5 |
-| 2 | **INMP441** I2S microphone | Ears (under the lid) | 6 |
-| 1 | **MAX98357A** I2S amplifier + **28 mm 8 Ω speaker** | Voice | 9 |
-| 1 | 5 mm LED (any colour) + 220 Ω resistor | Right eye status light | 1 |
+### Brain and senses
 
-> Cheaper cliff sensors: 4 × **TCRT5000** IR modules (~$5) work too; the
-> pockets fit modules up to ~13 × 18 mm.
+| Qty | Part | What it does | Where | ≈ ₹ |
+|---|---|---|---|---|
+| 1 | **Raspberry Pi 5, 4 GB** | Main computer: camera, person detection, Wi-Fi, talking to Claude | Robocraze | 6,150 |
+| 1 | **Official Pi 5 Active Cooler** | Keeps the Pi 5 from throttling inside the body | Indian Hobby Center, ElectronicsComp | 500 |
+| 1 | microSD card, 32 GB (SanDisk / Samsung) | | Amazon.in | 400 |
+| 1 | **Raspberry Pi Camera Module 3 Wide** (not NoIR) | The left eye | ElectronicsComp, ElectroPi, Robocraze | 3,700 |
+| 1 | **Pi Zero camera cable, 30 cm** (22-pin to 15-pin) | The Pi 5 uses the same narrow connector as the Zero | Robocraze | 92 |
+| 1 | **Raspberry Pi Pico** | Real-time microcontroller: motors, sensors, **safety reflexes** | SRK Electronics, ibots | 500 |
+| 1 | **VL53L5CX** 8×8 ToF (SmartElex) | Chest depth sensor | Robocraze, The Engineer Store, Robu | 760 |
+| 2 | **VL53L1X** ToF (7Semi) | Side sensors in the hands | Robocraze (Flyrobo ₹574) | 839 each |
+| 4 | **VL6180X** ToF (SmartElex) | Cliff sensors, one near each corner | Robocraze (Probots ≈ ₹349) | 712 each |
+| 1 | **MPU-6050** IMU (GY-521) | Tilt, bumps, being picked up | Probots | 200 |
+| 2 | **INMP441** I2S microphone | Ears, under the lid | Robocraze | 136 each |
+| 1 | **MAX98357A** I2S amplifier (SmartElex) | Voice | Robocraze, KSP Electronics | 250 |
+| 1 | 28 mm 8 Ω speaker | | Robu, Amazon.in | 100 |
+| 1 | 5 mm LED + 220 Ω resistor | Right eye status light | anywhere | 10 |
+
+> Cheaper cliff sensors: 4 × **TCRT5000** IR modules (≈ ₹250 total) work too.
 
 ### Movement
 
-| Qty | Part | Notes | ~$ |
-|---|---|---|---|
-| 2 | **N20 gear motor, 6 V, 1:100, with magnetic encoder** | Must have a **3 mm D-shaft at least 9 mm long** | 12 |
-| 1 | **DRV8833** dual motor driver | | 3 |
-| 2 | **MG90S** servo (metal gears) | Neck pan + tilt. SG90 works, but MG90S lasts longer | 8 |
+| Qty | Part | Notes | Where | ≈ ₹ |
+|---|---|---|---|---|
+| 2 | **N20 gear motor, 6 V, 200 RPM, with encoder** | Check: 6 V (not 3 V or 12 V), "with encoder", **3 mm D-shaft at least 9 mm long** | Robu (iBots ₹480) | 589 each |
+| 1 | **DRV8833** dual motor driver | | Robocraze, ThinkRobotics | 100 |
+| 2 | **MG90S** servo, **180°** (not the 360° continuous version) | Neck pan + tilt | Robocraze, Probots, Robu | 229 each |
 
-### Power
+### Power and charging
 
-| Qty | Part | Notes | ~$ |
-|---|---|---|---|
-| 2 | **18650 Li-ion cells**, protected, from a reputable brand | Never use unbranded cells | 12 |
-| 1 | **2 × 18650 holder** (series, with wires) | | 3 |
-| 1 | **2S BMS** board | Protects the cells | 3 |
-| 1 | **5 V 3 A buck converter** (mini) | Powers the Pi, Pico, sensors and servos | 3 |
-| 1 | **INA219** breakout | Battery voltage / current, so it knows when to charge | 3 |
-| 1 | Small slide or rocker switch | | 1 |
-| 1 | 18650 charger | For v0.1 charge the cells outside; the dock comes later | 10 |
+| Qty | Part | Notes | Where | ≈ ₹ |
+|---|---|---|---|---|
+| 4 | **18650 cells, genuine Samsung / LG / Molicel** | 2S2P pack, about 3 h of running. Fakes are common: avoid random sellers and anything claiming > 3,500 mAh | Robu, Robocraze, Hubtronics | 350 each |
+| 2 | **2 × 18650 holder** (series, with wires) | Wired in parallel. Charge all 4 cells to the same voltage before connecting them | Robu, Robocraze | 50 each |
+| 1 | **2S BMS, 10 A or more** | Protects the cells | Quartz Components (2S 13A), Robu | 100 |
+| 1 | **5 V 5 A buck converter** (e.g. XL4015) | Powers the Pi 5, Pico, sensors and servos. Set it to 5.1 V before connecting the Pi | Robu, Robocraze | 250 |
+| 1 | **INA219** | Battery level and charging current: tells Wall-E when to go home | Rytronics, DNA Tech | 150–300 |
+| 1 | **TP5100 2S charger module** | Charges the pack from 12 V | Hubtronics, Quartz Components | 65 |
+| 1 | **12 V 2 A adapter**, 5.5 × 2.1 mm plug | Powers the dock (or plugs straight into Wall-E) | Amazon.in | 300 |
+| 2 | **Panel DC jack**, 5.5 × 2.1 mm, 8 mm hole | One on Wall-E's back, one on the dock | Robu, Amazon.in | 30 each |
+| 1 | **2-pin magnetic pogo connector pair**, 2.54 mm pitch | The dock contacts: pins on Wall-E's scoop, socket on the dock | Probots | 149 |
+| 2 | **1N5822 Schottky diode** | Keeps the contacts and socket from carrying battery power | anywhere | 10 each |
+| 1 | Inline fuse holder + 5 A fuse | Cuts power if a wire shorts | anywhere | 40 |
+| 1 | **KCD1 mini rocker switch** (19 × 13 mm cutout) | Main power switch on the back | anywhere | 20 |
 
 ### Screws and bits
 
 | Qty | Part | Used for |
 |---|---|---|
 | 4 | M3 × 40 bolt + nyloc nut + 2 washers | Idler and road-wheel axles |
-| 12 | M3 × 10 screw (self-tapping into plastic is fine) | Lid (4), hands (4), scoop and lip (4) |
+| 14 | M3 × 10 screw (self-tapping into plastic is fine) | Lid (4), hands (4), scoop and lip (4), dock wall (2) |
 | 1 | M3 × 8 screw | Head tilt pivot |
 | ~16 | M2 × 5 self-tapping screws | Camera (4), motor straps (4), eyes onto the head (4), spares |
-| 4 | M2.5 × 6 screws | Pi Zero |
+| 4 | M2.5 × 6 screws | Pi 5 |
 | 2 | M2 × 3 grub screw (optional) | Locks the drive sprockets on the motor shafts |
+| 4 | Self-adhesive rubber feet, 12 mm | Under the dock, so it doesn't slide |
 | | Hook-up wire, Dupont / JST connectors, heat-shrink, double-sided foam tape, Velcro | |
 
-### Filament
+An assorted M2 / M2.5 / M3 kit (≈ ₹400) plus wires and connectors (≈ ₹300) covers this.
 
-| Material | Colour | Amount | For |
-|---|---|---|---|
-| PETG (or PLA) | Yellow | ~250 g | Body, lid, head |
-| PETG (or PLA) | Grey | ~150 g | Wheels, scoop, lip, hands, neck, eyes |
-| **TPU 95A** | Black | ~40 g | Track belts |
+### Filament and tools
+
+| Item | Amount | ≈ ₹ |
+|---|---|---|
+| PETG (or PLA), yellow | ~250 g | 1,050–1,500 per kg |
+| PETG (or PLA), grey | ~300 g (robot + dock) | 1,050–1,500 per kg |
+| **TPU 95A**, black (eSUN eTPU-95A) | ~40 g | 2,100–3,400 per kg |
+| Soldering iron kit, multimeter (if you don't have them) | | 600 + 500 |
 
 ## Printing
 
@@ -95,6 +112,8 @@ settings: 0.2 mm layers, 3 walls, 20% infill.
 | `scoop_front.stl`, `lip_rear.stl` | 1 each | PETG/PLA | |
 | `hand_left.stl`, `hand_right.stl` | 1 each | PETG/PLA | |
 | `belt.stl` | 2 | **TPU 95A** | Slow (20–30 mm/s), no retraction or very little, 2 walls |
+| `dock_base.stl` | 1 | PETG/PLA | 170 × 210 mm: check it fits your bed |
+| `dock_wall.stl` | 1 | PETG/PLA | Marker side up |
 
 `preview/` has a picture of every part.
 
@@ -108,6 +127,7 @@ Before the big parts, print **one `sprocket_drive`, one `motor_strap` and one
 - The sprocket pushes onto the N20 shaft firmly and doesn't wobble.
 - The belt fits snugly over two sprockets held ~89 mm apart (axle to axle).
 - Your sensor breakouts fit their pockets (the scoop pocket and hand recess are 13.3 × 18.4 mm).
+  **Boards sold in India vary in size**: if yours differ, send Claude the board sizes from the listings.
 
 If something is too tight or loose, change `fit` at the top of `walle.scad`
 (or a board size under "bought components") and re-export, see
@@ -139,15 +159,28 @@ If something is too tight or loose, change `fit` at the top of `walle.scad`
 
 ### 4. Electronics inside the body
 
-- **Pi Zero** on the 4 standoffs on the inside of the back wall.
-- **Battery holder** on the floor in the middle (Velcro), with the BMS.
-- **Pico, DRV8833, buck converter, INA219, amplifier**: double-sided foam tape on the
-  floor and side walls.
+- **Pi 5** with its Active Cooler on the 4 standoffs on the inside of the back wall,
+  fan facing into the body. The vents behind it and in the lid above it let air through.
+- **Batteries**: the two holders side by side in the fenced bay on the floor (Velcro).
+  Charge all 4 cells to the same voltage first, then wire the holders in parallel.
+- **Power switch** and **charging socket** into the two holes low on the back wall.
+- **Dock contacts**: glue the spring-pin half of the pogo connector into the slot at
+  the front of `scoop_front`, pins facing forward; wires go back along the channel.
+- **Pico, DRV8833, buck converter, INA219, TP5100, BMS, amplifier**: double-sided foam tape on the
+  floor around the battery bay and on the side walls.
 - **Speaker** glued behind the grille; **microphones** taped under the lid's two
   small hole clusters, mic port facing the holes.
-- **Charging contacts**: two 4 mm holes in the floor at the front, for later.
 
-A wiring diagram comes with the firmware (next step).
+How the power is wired, in short:
+
+```
+cells (2S2P) -> BMS -> fuse -> switch -> INA219 -> 5 V buck -> Pi 5, Pico, sensors, servos
+                                               \-> DRV8833 -> track motors
+dock contacts --diode--+
+charging socket -diode-+--> TP5100 --> cells (through the BMS)
+```
+
+A full wiring diagram comes with the firmware (next step).
 
 ### 5. Neck and head
 
@@ -170,6 +203,21 @@ A wiring diagram comes with the firmware (next step).
 
 Lid on, 4 × M3 screws. Done: a Wall-E with no software yet.
 
+### 7. The charging dock
+
+1. Glue the socket half of the pogo connector into the slot in `dock_base`'s
+   contact block, facing Wall-E, and check the polarity against the pins on the scoop
+   (the magnets only join one way round).
+2. Fit a DC jack in the `dock_wall` and run its wires down the channel to the socket.
+3. Screw the wall to the back of the contact block (2 × M3).
+4. Print an **ArUco marker** (4×4 dictionary, ID 0, 80 mm square) on paper and glue it
+   into the recess on the wall.
+5. Rubber feet underneath, put it against a wall, and plug in the 12 V adapter.
+
+Wall-E drives in forwards between the guide arms until the magnets snap the
+contacts together. Until the "go home" behaviour is written, you can push it
+onto the dock by hand to charge, or plug the adapter straight into its back.
+
 ## Changing the design
 
 All sizes come from `RobotSpec` in `petsim/robot.py`, plus a few hardware-only
@@ -187,5 +235,5 @@ printed parts follow, so you can retrain and re-test before printing.
 
 - Wiring diagram and the Pico firmware (motors, sensors, safety reflexes)
 - Pi software: camera → person detector → trained brain → Pico
-- Charging dock
+- "Go home to charge" behaviour (simulation first, then the robot)
 - Voice: microphones → speech-to-text → Claude → speaker

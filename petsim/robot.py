@@ -12,10 +12,10 @@ import numpy as np
 
 @dataclass(frozen=True)
 class RobotSpec:
-    # Body: ~12 x 11 x 10 cm box, 2S 18650 pack low inside.
+    # Body: ~12 x 11 x 10 cm box, 2S2P 18650 pack low inside.
     body_half: tuple = (0.06, 0.055, 0.05)
     clearance: float = 0.012
-    body_mass: float = 0.55
+    body_mass: float = 0.70  # Pi 5 + cooler, 4 x 18650, boards, motors
     # Tracks: 3 coupled road wheels per side (a printed TPU track in reality),
     # the middle one driven by an N20 gear motor with encoder.
     wheel_radius: float = 0.02

@@ -1,7 +1,7 @@
 """Run a trained follow policy with NumPy only.
 
 PyTorch is only needed for training. Exported weights (scripts/export_policy.py)
-are a few hundred KB and run anywhere NumPy does, e.g. the robot's Pi Zero 2 W.
+are a few hundred KB and run anywhere NumPy does, e.g. the robot's Raspberry Pi 5.
 """
 
 import numpy as np

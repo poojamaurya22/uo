@@ -34,6 +34,8 @@ PARTS = {
     "eye_camera": (1, "PLA", "grey"),
     "eye_led": (1, "PLA", "grey"),
     "eye_cap": (2, "PLA", "grey"),
+    "dock_base": (1, "PETG or PLA", "any"),
+    "dock_wall": (1, "PETG or PLA", "any"),
 }
 
 
@@ -70,6 +72,8 @@ def main():
                           "assembly_back": "0,0,100,60,0,215,650"}.items():
             openscad(["-o", os.path.join("preview", f"{view}.png"), "--imgsize=1000,1000", f"--camera={cam}",
                       "--colorscheme=Tomorrow", "walle.scad"], display=True)
+        openscad(["-D", 'part="dock"', "-o", os.path.join("preview", "dock.png"), "--imgsize=1000,1000",
+                  "--camera=-60,0,60,55,0,220,700", "--colorscheme=Tomorrow", "walle.scad"], display=True)
         print("previews in hardware/preview/")
 
 

@@ -28,7 +28,7 @@ from petsim.robot import (
 )
 from petsim.safety import safety_filter
 
-CONTROL_DT = 0.05  # 20 Hz, comfortable for a Pi Zero 2 W + microcontroller
+CONTROL_DT = 0.05  # 20 Hz, comfortable for a Raspberry Pi + microcontroller
 TOF_ZONES = 8
 CLIFF_RANGE = 0.2
 PERSON_RANGE = 6.0

@@ -20,7 +20,7 @@ Right: what Wall-E's own eye sees as its neck tracks you
 
 ## Building the real one
 
-**[`hardware/`](hardware/README.md)** has everything to build it: a shopping list (~$200–250),
+**[`hardware/`](hardware/README.md)** has everything to build it: a shopping list for India (≈ ₹21,000–23,000 including a self-charging dock),
 ready-to-print STL files for every part, and step-by-step assembly. The parts are
 generated from the same `RobotSpec` as the simulation, so the printed robot
 matches the one the brain was trained and tested on.

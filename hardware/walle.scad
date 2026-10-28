@@ -29,7 +29,13 @@ n20_protrude = 1;            // push the motor in until its gearbox pokes out of
 sg90 = [22.8, 12.2, 22.7];   // body: length, width, height (shaft direction)
 sg90_tab_len = 32.4; sg90_tab_t = 2.5; sg90_tab_z = 15.9; sg90_tab_hole = 27.8;
 sg90_shaft_from_end = 5.9;
-pi_holes = [58, 23];         // Raspberry Pi Zero 2 W, M2.5
+pi_holes = [58, 49];         // Raspberry Pi 5, M2.5
+pi_z = 60;                   // centre of the Pi's holes above the body's underside (on the back wall)
+battery_bay = [78, 84];      // two 2 x 18650 holders side by side (2S2P), x by y
+battery_x = 8;               // bay centre: clear of the motors at the back, the ToF rails at the front
+dc_jack_d = 8;               // panel DC barrel jack (5.5 x 2.1 mm) for plug-in charging
+switch_cut = [19, 13];       // KCD1 mini rocker switch cutout, y by z
+pogo_cut = [8, 5];           // 2-pin magnetic pogo connector (2.54 mm pitch), y by z: glued in
 cam_holes = [21, 12.5];      // Pi Camera Module 3, M2
 cam_lens_offset = -1.2;      // lens centre below the hole-pattern centre
 tof_board = [25.4, 25.4];    // VL53L5CX breakout (SparkFun Qwiic size)
@@ -112,10 +118,16 @@ module body() {
             for (side = [-1, 1]) motor_cradle(side);
             // Pi Zero standoffs on the rear wall
             for (sy = [-1, 1], sz = [-1, 1])
-                translate([-body_l / 2 + wall, sy * pi_holes[0] / 2, 55 + sz * pi_holes[1] / 2])
+                translate([-body_l / 2 + wall, sy * pi_holes[0] / 2, pi_z + sz * pi_holes[1] / 2])
                     rotate([0, 90, 0]) cylinder(d = 5, h = 5);
             // rails holding the chest ToF board, sensor looking out through the window
             for (sy = [-1, 1]) tof_rail(sy);
+            // low fence keeping the battery holders in place (plus Velcro)
+            translate([battery_x, 0, 0]) difference() {
+                rbox([battery_bay[0] + 2 * fit + 4, battery_bay[1] + 2 * fit + 4, floor_t + 5], 2);
+                translate([0, 0, floor_t]) rbox([battery_bay[0] + 2 * fit, battery_bay[1] + 2 * fit, 10], 1);
+                for (sx = [-1, 1]) translate([sx * battery_bay[0] / 2, 0, floor_t + 3]) cube([10, 30, 6], center = true);
+            }
         }
         // lid screw holes (M3, self-tapping)
         for (sx = [-1, 1], sy = [-1, 1])
@@ -133,7 +145,7 @@ module body() {
         }
         // Pi Zero standoff holes
         for (sy = [-1, 1], sz = [-1, 1])
-            translate([-body_l / 2, sy * pi_holes[0] / 2, 55 + sz * pi_holes[1] / 2])
+            translate([-body_l / 2, sy * pi_holes[0] / 2, pi_z + sz * pi_holes[1] / 2])
                 rotate([0, 90, 0]) cylinder(d = 2.2, h = 30, center = true);
         // chest: ToF window and speaker grille
         translate([body_l / 2, 0, tof_z]) cube([4 * wall, 12, 10], center = true);
@@ -154,8 +166,10 @@ module body() {
                 translate([sx * body_l / 2, dy, 9]) rotate([0, 90, 0]) cylinder(d = 2.6, h = 4 * wall, center = true);
             translate([sx * body_l / 2, 0, 9]) rotate([0, 90, 0]) cylinder(d = 6, h = 4 * wall, center = true);
         }
-        // charging contacts (pogo pins / brass screws) in the floor, under the front
-        for (dy = [-15, 15]) translate([body_l / 2 - 25, dy, -1]) cylinder(d = 4, h = floor_t + 2);
+        // back wall: charging socket, power switch, and air intake behind the Pi
+        translate([-body_l / 2, -30, 22]) rotate([0, 90, 0]) cylinder(d = dc_jack_d, h = 4 * wall, center = true);
+        translate([-body_l / 2, 30, 24]) cube([4 * wall, switch_cut[0], switch_cut[1]], center = true);
+        for (dy = [-20 : 6 : 20]) translate([-body_l / 2, dy, pi_z]) cube([4 * wall, 3, 24], center = true);
     }
 }
 
@@ -188,6 +202,8 @@ module lid() {
         // two I2S microphones under the lid, listening through small holes
         for (sy = [-1, 1]) for (d = [[0, 0], [2.5, 0], [-2.5, 0], [0, 2.5], [0, -2.5]])
             translate([20 + d[0], sy * 35 + d[1], -5]) cylinder(d = 1.2, h = 20);
+        // vents above the Pi 5's fan, either side of the cable slot
+        for (sy = [-1, 1], dy = [14 : 6 : 44]) translate([-body_l / 2 + 12, sy * dy, 0]) cube([14, 3, 20], center = true);
         // decorative hatch lines
         for (dy = [-46, -24, 24, 46]) translate([25, dy, lid_t - 0.6]) cube([40, 0.8, 2], center = true);
     }
@@ -266,13 +282,20 @@ module spacer() {  // between the body wall and an idler / road wheel
 }
 
 // --------------------------------------------------------- sensor mounts
-module scoop() {  // front scoop or rear lip, each with 2 cliff sensors near the corners; printed flat
-    len = cliff_reach + cliff_board[0] / 2 + 4;
+scoop_len = cliff_reach + cliff_board[0] / 2 + 4;
+pogo_z = 7;  // dock contact height above the body's underside
+module scoop(pogo = false) {  // front scoop or rear lip, each with 2 cliff sensors near the corners; printed flat
+    len = scoop_len;
     w = body_w * 0.9;
     difference() {
         union() {
             translate([0, -w / 2, 0]) cube([len, w, 8]);
             translate([-0.01, -w / 2, 0]) cube([3, w, 16]);  // flange against the body wall
+            if (pogo) translate([len - 8, -12, 0]) cube([8, 24, 14]);  // dock contact block
+        }
+        if (pogo) {  // the spring-pin half of the pogo connector, facing forward, and its wire channel
+            translate([len - 6, 0, pogo_z]) cube([14, pogo_cut[0] + 2 * fit, pogo_cut[1] + 2 * fit], center = true);
+            translate([-1, -2, 2]) cube([len - 4, 4, 20]);
         }
         for (fy = [-0.75, 0.75]) translate([cliff_reach, fy * body_w / 2, 2]) {
             board_pocket(cliff_board, 10, 6);
@@ -398,6 +421,62 @@ module eye_cap() {  // push-fit back cover with a cable slot
     }
 }
 
+// ------------------------------------------------------------------- dock
+// Wall-E drives in forwards between the guide arms until the pogo pins on its
+// scoop snap onto the matching half in the contact block. The wall behind it
+// carries a printed ArUco marker the camera uses to find the dock.
+dock_plate_t = 3;
+dock_len = 170;                                  // entry to contact block, x
+dock_gap = 2 * (track_y + track_w / 2) + 6;      // between the arms at the narrow end
+dock_mouth = dock_gap + 30;                      // between the arms at the entry
+arm_t = 4;
+dock_w = dock_mouth + 2 * arm_t;
+block = [12, dock_gap + 2 * arm_t, 28];          // contact block at the front of the dock
+marker = 80;                                     // ArUco marker size
+
+module dock_base() {
+    difference() {
+        union() {
+            // floor plate with a ramp at the entry
+            hull() {
+                translate([-dock_len, -dock_w / 2, 0]) cube([dock_len, dock_w, 0.6]);
+                translate([-dock_len + 15, -dock_w / 2, 0]) cube([dock_len - 15, dock_w, dock_plate_t]);
+            }
+            // funnel arms
+            for (sy = [-1, 1]) hull() {
+                translate([-dock_len + 20, sy * (dock_mouth / 2 + arm_t / 2), 0]) cylinder(d = arm_t, h = 22);
+                translate([-block[0] + 1, sy * (dock_gap / 2 + arm_t / 2), 0]) cylinder(d = arm_t, h = 22);
+            }
+            translate([-block[0], -block[1] / 2, 0]) cube(block);
+        }
+        // the socket half of the pogo connector, at the robot's contact height
+        translate([-block[0] - 1, 0, dock_plate_t + clearance + pogo_z])
+            cube([20, pogo_cut[0] + 2 * fit, pogo_cut[1] + 2 * fit], center = true);
+        // wire channel down the back of the block
+        translate([-4, -2, -1]) cube([5, 4, block[2] + 2]);
+        // screws holding the wall
+        for (sy = [-1, 1]) translate([-6, sy * block[1] / 3, block[2] - 12]) rotate([0, 90, 0]) cylinder(d = 2.6, h = 20);
+        // anti-slip pads underneath
+        for (sx = [-dock_len + 25, -25], sy = [-1, 1]) translate([sx, sy * (dock_w / 2 - 20), -1]) cylinder(d = 12.5, h = 1.6);
+    }
+}
+
+module dock_wall() {  // screws to the back of the contact block; printed flat
+    h = 200;
+    difference() {
+        translate([0, -block[1] / 2, 0]) cube([4, block[1], h]);
+        // marker recess on the face Wall-E sees, about where the camera looks when approaching
+        translate([-1, -marker / 2 - 1, 150 - marker / 2 - 1]) cube([1.6, marker + 2, marker + 2]);
+        for (sy = [-1, 1]) translate([-1, sy * block[1] / 3, block[2] - 12]) rotate([0, 90, 0]) {
+            cylinder(d = 3.4, h = 10);
+            translate([0, 0, 3.5]) cylinder(d = 6.6, h = 3);  // screw heads at the back
+        }
+        // 12 V barrel jack for the adapter, and the wire path to the contacts
+        translate([-1, block[1] / 2 - 25, 40]) rotate([0, 90, 0]) cylinder(d = dc_jack_d, h = 10);
+        translate([-1, -2, 0]) cube([2, 4, 45]);
+    }
+}
+
 // --------------------------------------------------------------- assembly
 module sg90_ghost() {  // stand-in for a bought servo, shaft at the origin pointing +z
     color("#3060c0", 0.8) translate([-sg90_shaft_from_end, -sg90[1] / 2, -sg90[2]]) {
@@ -422,7 +501,7 @@ module assembly() {
         color("gray") translate([body_l / 2 - 14, side * body_w / 2, side_tof_z])
             mirror([0, side < 0 ? 1 : 0, 0]) hand();
     }
-    color("gray") translate([body_l / 2, 0, 0]) scoop();
+    color("gray") translate([body_l / 2, 0, 0]) scoop(pogo = true);
     color("gray") translate([-body_l / 2, 0, 0]) mirror([1, 0, 0]) scoop();
     translate([pan_x, 0, body_h]) {
         translate([0, 0, sg90[2] - sg90_tab_z]) sg90_ghost();  // tabs resting on the lid
@@ -445,7 +524,7 @@ if (part == "sprocket_idler") sprocket(false);
 if (part == "road_wheel") road_wheel();
 if (part == "spacer") spacer();
 if (part == "motor_strap") motor_strap();
-if (part == "scoop_front") scoop();
+if (part == "scoop_front") scoop(pogo = true);
 if (part == "lip_rear") scoop();
 if (part == "hand_left") rotate([90, 0, 0]) hand();
 if (part == "hand_right") rotate([-90, 0, 0]) mirror([0, 1, 0]) hand();
@@ -454,3 +533,6 @@ if (part == "head") rotate([180, 0, 0]) head();
 if (part == "eye_camera") rotate([0, 90, 0]) eye(true);  // front face down: no supports
 if (part == "eye_led") rotate([0, 90, 0]) eye(false);
 if (part == "eye_cap") eye_cap();
+if (part == "dock_base") dock_base();
+if (part == "dock_wall") rotate([0, 90, 0]) dock_wall();  // marker face up
+if (part == "dock") { dock_base(); dock_wall(); }
