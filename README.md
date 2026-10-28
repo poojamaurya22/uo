@@ -53,6 +53,20 @@ sometimes stops. You wait if the robot is in your way.
 (±20%, left and right differ), mass and floor grip (tile vs. rug). This makes a
 trained policy robust enough to have a chance on real hardware.
 
+## Results so far
+
+200 test runs each, Wall-E body, safety reflexes on:
+
+| | Hand-written | Trained brain (`models/walle_follow.npz`) |
+|---|---|---|
+| Time at a good distance (0.6–1.4 m) | 70% | **87%** |
+| Too close to you (< 0.45 m) | 6% | **1%** |
+| Person in view | 82% | **86%** |
+| Furniture bumps per minute | **34** | 43 |
+| Falls / tip-overs | 0 | 0 |
+
+The trained brain follows clearly better. Bumping is the next thing to improve.
+
 ## Safety reflexes
 
 A learned brain is good but never guaranteed, so `petsim/safety.py` sits
